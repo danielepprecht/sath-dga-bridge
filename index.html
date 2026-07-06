@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SATH — DGA Bridge Status</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#0a1628;color:#e2e8f0;padding:20px}
+  h1{color:#60a5fa;font-size:20px;margin-bottom:4px}
+  .sub{color:#64748b;font-size:12px;margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:16px}
+  .card{background:#0f172a;border:1px solid #1e3a5f;border-radius:10px;padding:12px}
+  .card-hdr{font-size:10px;color:#60a5fa;font-weight:700;margin-bottom:6px;text-transform:uppercase}
+  .q-val{font-size:28px;font-weight:700;color:#1565c0}
+  .q-unit{font-size:11px;color:#64748b}
+  .stn-name{font-size:11px;color:#94a3b8;margin-top:2px}
+  .cuenca{font-size:10px;color:#475569}
+  .ts{font-size:9px;color:#475569;margin-top:4px}
+  .ok{border-color:#16a34a}.warn{border-color:#d97706}.err{border-color:#dc2626}
+  .status-bar{background:#0f172a;border:1px solid #1e3a5f;border-radius:8px;padding:10px 16px;
+    display:flex;align-items:center;gap:12px;margin-bottom:16px;font-size:11px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#16a34a}
+  .dot.warn{background:#d97706}.dot.err{background:#dc2626}
+  #raw-link{color:#60a5fa;font-size:10px;text-decoration:none;margin-left:auto}
+  #last-update{color:#64748b;font-size:10px}
+  footer{margin-top:24px;text-align:center;font-size:10px;color:#475569}
+</style>
+</head>
+<body>
+<h1>⚡ SATH — DGA Bridge</h1>
+<div class="sub">Datos hidrométricos DGA en tiempo real · Región Los Ríos + Los Lagos</div>
+
+<div class="status-bar">
+  <div class="dot" id="status-dot"></div>
+  <span id="status-text">Cargando...</span>
+  <span id="last-update"></span>
+  <a href="dga_losrios.json" id="raw-link" target="_blank">JSON raw ↗</a>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<footer>Daniel Epprecht Valderrama · SATH · DGA/MOP datos provisorios</footer>
+
+<script>
+const CUENCA_COLORS = {
+  'Calle-Calle':'#1565c0','San Pedro':'#0891b2','Cruces':'#16a34a',
+  'Costero':'#6b7280','Bueno':'#d97706','Bueno-Ranco':'#d97706',
+  'Bueno-sur':'#d97706','Ref.urbana':'#6b7280'
+};
+
+async function load(){
+  try{
+    const r  = await fetch('dga_losrios.json?_=' + Date.now());
+    const d  = await r.json();
+    const m  = d.meta;
+    const es = d.estaciones;
+
+    const nOk   = m.n_estaciones_ok || 0;
+    const nTot  = m.n_estaciones || 12;
+    const login = m.login_ok;
+
+    document.getElementById('status-dot').className =
+      'dot' + (nOk===0?'err':nOk<nTot?' warn':'');
+    document.getElementById('status-text').textContent =
+      `${nOk}/${nTot} estaciones con dato · Login DGA: ${login?'✓':'✗ (fallback)'}`;
+    document.getElementById('last-update').textContent =
+      'Act: ' + new Date(m.timestamp_utc).toLocaleString('es-CL',{timeZone:'America/Santiago'});
+
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    for(const [id, stn] of Object.entries(es)){
+      const ok    = stn.estado === 'ok';
+      const fb    = stn.estado.includes('fallback');
+      const q     = stn.q_m3s != null ? stn.q_m3s.toFixed(2) : '—';
+      const nivel = stn.nivel_m != null ? stn.nivel_m.toFixed(3)+'m' : '';
+      const pp    = stn.pp_mm  != null ? stn.pp_mm.toFixed(1)+'mm' : '';
+      const color = CUENCA_COLORS[stn.cuenca] || '#1565c0';
+      const cls   = ok?'ok':fb?'warn':'err';
+      const dt    = stn.fecha_dato
+        ? new Date(stn.fecha_dato.replace(/(\d{2})\/(\d{2})\/(\d{4})/,'$3-$2-$1'))
+            .toLocaleString('es-CL',{timeZone:'America/Santiago'})
+        : '—';
+      grid.innerHTML += `
+      <div class="card ${cls}">
+        <div class="card-hdr" style="color:${color}">${stn.cuenca} · ${stn.codigo}</div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span class="q-val" style="color:${color}">${q}</span>
+          <span class="q-unit">m³/s</span>
+          ${nivel?`<span class="q-unit">· ${nivel}</span>`:''}
+          ${pp?`<span class="q-unit">· ${pp}</span>`:''}
+        </div>
+        <div class="stn-name">${stn.nombre}</div>
+        <div class="ts">${ok?'🟢':fb?'🟡':'🔴'} ${stn.estado} · ${dt}</div>
+      </div>`;
+    }
+  }catch(e){
+    document.getElementById('status-text').textContent = 'Error cargando datos: ' + e.message;
+    document.getElementById('status-dot').className = 'dot err';
+  }
+}
+
+load();
+setInterval(load, 5*60*1000);  // refresca cada 5 min
+</script>
+</body>
+</html>

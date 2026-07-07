@@ -1,14 +1,15 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-06T23:32:28.467262+00:00",
-    "timestamp_chile": "2026-07-06T19:32:28.467262-04:00",
-    "fuente": "DGA — Sistema Hidrométrico Nacional (SNIA/MOP)",
-    "url_fuente": "https://snia.mop.gob.cl/dgasat/",
+    "timestamp_utc": "2026-07-07T00:49:13.404158+00:00",
+    "timestamp_chile": "2026-07-06T20:49:13.404158-04:00",
+    "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
+    "endpoint": "https://vipnet.mop.gob.cl/v1/vipnet/estaciones/valor",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP",
-    "login_ok": false,
+    "fetch_ok": true,
     "n_estaciones_ok": 0,
     "n_estaciones": 12,
-    "prox_actualizacion": "2026-07-07T00:32:28.467262+00:00"
+    "n_raw_registros": 1024,
+    "prox_actualizacion": "2026-07-07T01:49:13.404158+00:00"
   },
   "estaciones": {
     "antihue": {
@@ -18,10 +19,11 @@
       "lat": -39.85,
       "lon": -73.1,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     },
     "rinihue": {
       "codigo": "10111001",
@@ -30,10 +32,11 @@
       "lat": -39.79,
       "lon": -72.43,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     },
     "mamalona": {
       "codigo": "10113003",
@@ -42,10 +45,11 @@
       "lat": -39.58,
       "lon": -72.18,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     },
     "valdivia": {
       "codigo": "10134001",
@@ -54,10 +58,11 @@
       "lat": -39.64,
       "lon": -73.09,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     },
     "corral": {
       "codigo": "10200001",
@@ -66,10 +71,11 @@
       "lat": -39.88,
       "lon": -73.43,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     },
     "lacpicada": {
       "codigo": "10133000",
@@ -78,10 +84,11 @@
       "lat": -39.82,
       "lon": -73.27,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     },
     "laslomas": {
       "codigo": "10411002",
@@ -90,10 +97,11 @@
       "lat": -39.94,
       "lon": -73.02,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     },
     "tegualda": {
       "codigo": "10351001",
@@ -102,10 +110,11 @@
       "lat": -40.17,
       "lon": -72.62,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     },
     "panguipulli": {
       "codigo": "10107003",
@@ -114,10 +123,11 @@
       "lat": -39.64,
       "lon": -72.33,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     },
     "pilmaiquen": {
       "codigo": "10328001",
@@ -126,10 +136,11 @@
       "lat": -40.18,
       "lon": -72.37,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     },
     "launion": {
       "codigo": "10313001",
@@ -138,10 +149,11 @@
       "lat": -40.29,
       "lon": -73.09,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     },
     "riobueno": {
       "codigo": "10311001",
@@ -150,10 +162,11 @@
       "lat": -40.69,
       "lon": -72.97,
       "q_m3s": null,
-      "nivel_m": null,
       "pp_mm": null,
+      "nivel_m": null,
       "fecha_dato": null,
-      "estado": "fallback_bna"
+      "variable": "—",
+      "estado": "no_encontrado"
     }
   }
 }

@@ -1,14 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-07T02:18:17.615779+00:00",
-    "timestamp_chile": "2026-07-06T22:18:17.615779-04:00",
+    "timestamp_utc": "2026-07-07T02:25:19.796059+00:00",
+    "timestamp_chile": "2026-07-06T22:25:19.796059-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
-    "aviso": "Datos provisorios sujetos a revisión — DGA/MOP",
+    "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "fetch_ok": true,
-    "n_estaciones_ok": 4,
+    "n_estaciones_ok": 8,
     "n_estaciones": 12,
-    "n_raw_registros": 3629,
-    "prox_actualizacion": "2026-07-07T03:18:17.615779+00:00"
+    "n_raw_registros": 1024,
+    "prox_actualizacion": "2026-07-07T03:25:19.796059+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -17,11 +17,12 @@
       "cuenca": "Bueno-Ranco",
       "lat": -40.18,
       "lon": -72.37,
-      "q_m3s": 1.2,
+      "q_m3s": 0.0,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "RIO PILMAIQUEN EN SAN PABLO",
+      "es_proxy": false,
       "estado": "ok"
     },
     "launion": {
@@ -35,6 +36,7 @@
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "RIO LLOLLELHUE EN LA UNION",
+      "es_proxy": false,
       "estado": "ok"
     },
     "lacpicada": {
@@ -48,6 +50,35 @@
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "RIO LEUFUCADE EN PURULON",
+      "es_proxy": false,
+      "estado": "ok"
+    },
+    "riobueno": {
+      "codigo": "10327006",
+      "nombre": "Escuela Rural Crucero - Cuenca Río Bueno [proxy]",
+      "cuenca": "Bueno",
+      "lat": -40.69,
+      "lon": -72.97,
+      "q_m3s": 0.0,
+      "pp_mm": null,
+      "nivel_m": null,
+      "fecha_dato": null,
+      "variable": "ESCUELA RURAL CRUCERO",
+      "es_proxy": true,
+      "estado": "ok"
+    },
+    "panguipulli": {
+      "codigo": "10307009",
+      "nombre": "Futrono Sector Las Quemas - Lago Ranco [proxy]",
+      "cuenca": "Calle-Calle",
+      "lat": -39.64,
+      "lon": -72.33,
+      "q_m3s": 0.3,
+      "pp_mm": null,
+      "nivel_m": null,
+      "fecha_dato": null,
+      "variable": "FUTRONO SECTOR LAS QUEMAS",
+      "es_proxy": true,
       "estado": "ok"
     },
     "corral": {
@@ -56,11 +87,40 @@
       "cuenca": "Costero",
       "lat": -39.88,
       "lon": -73.43,
-      "q_m3s": 1.1,
+      "q_m3s": 1.2,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "METEOROLOGICA CORRAL",
+      "es_proxy": false,
+      "estado": "ok"
+    },
+    "mamalona": {
+      "codigo": "10304011",
+      "nombre": "Fundo Sichahue - San Pedro [proxy]",
+      "cuenca": "San Pedro",
+      "lat": -39.58,
+      "lon": -72.18,
+      "q_m3s": 0.5,
+      "pp_mm": null,
+      "nivel_m": null,
+      "fecha_dato": null,
+      "variable": "FUNDO SICHAHUE (Meteo)",
+      "es_proxy": true,
+      "estado": "ok"
+    },
+    "rinihue": {
+      "codigo": "10111015",
+      "nombre": "Lago Riñihue Estacion de Control [proxy]",
+      "cuenca": "San Pedro",
+      "lat": -39.79,
+      "lon": -72.43,
+      "q_m3s": 0.9,
+      "pp_mm": null,
+      "nivel_m": null,
+      "fecha_dato": null,
+      "variable": "LAGO RIÑIHUE ESTACION DE CONTROL",
+      "es_proxy": true,
       "estado": "ok"
     },
     "antihue": {
@@ -74,33 +134,8 @@
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "—",
-      "estado": "no_encontrado"
-    },
-    "rinihue": {
-      "codigo": "10111001",
-      "nombre": "Rio San Pedro En Desague Lago Rinihue",
-      "cuenca": "San Pedro",
-      "lat": -39.79,
-      "lon": -72.43,
-      "q_m3s": null,
-      "pp_mm": null,
-      "nivel_m": null,
-      "fecha_dato": null,
-      "variable": "—",
-      "estado": "no_encontrado"
-    },
-    "mamalona": {
-      "codigo": "10113003",
-      "nombre": "Rio San Pedro En Pucono",
-      "cuenca": "San Pedro",
-      "lat": -39.58,
-      "lon": -72.18,
-      "q_m3s": null,
-      "pp_mm": null,
-      "nivel_m": null,
-      "fecha_dato": null,
-      "variable": "—",
-      "estado": "no_encontrado"
+      "es_proxy": false,
+      "estado": "sin_telemetria"
     },
     "valdivia": {
       "codigo": "10134001",
@@ -113,7 +148,8 @@
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "—",
-      "estado": "no_encontrado"
+      "es_proxy": false,
+      "estado": "sin_telemetria"
     },
     "laslomas": {
       "codigo": "10411002",
@@ -126,7 +162,8 @@
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "—",
-      "estado": "no_encontrado"
+      "es_proxy": false,
+      "estado": "sin_telemetria"
     },
     "tegualda": {
       "codigo": "10351001",
@@ -139,33 +176,8 @@
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "—",
-      "estado": "no_encontrado"
-    },
-    "panguipulli": {
-      "codigo": "10107003",
-      "nombre": "Canal Hueninca Lago Calafquen",
-      "cuenca": "Calle-Calle",
-      "lat": -39.64,
-      "lon": -72.33,
-      "q_m3s": null,
-      "pp_mm": null,
-      "nivel_m": null,
-      "fecha_dato": null,
-      "variable": "—",
-      "estado": "no_encontrado"
-    },
-    "riobueno": {
-      "codigo": "10311001",
-      "nombre": "Rio Bueno En Bueno",
-      "cuenca": "Bueno",
-      "lat": -40.69,
-      "lon": -72.97,
-      "q_m3s": null,
-      "pp_mm": null,
-      "nivel_m": null,
-      "fecha_dato": null,
-      "variable": "—",
-      "estado": "no_encontrado"
+      "es_proxy": false,
+      "estado": "sin_telemetria"
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-07T00:49:13.404158+00:00",
-    "timestamp_chile": "2026-07-06T20:49:13.404158-04:00",
+    "timestamp_utc": "2026-07-07T01:18:48.287808+00:00",
+    "timestamp_chile": "2026-07-06T21:18:48.287808-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "endpoint": "https://vipnet.mop.gob.cl/v1/vipnet/estaciones/valor",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP",
@@ -9,7 +9,7 @@
     "n_estaciones_ok": 0,
     "n_estaciones": 12,
     "n_raw_registros": 1024,
-    "prox_actualizacion": "2026-07-07T01:49:13.404158+00:00"
+    "prox_actualizacion": "2026-07-07T02:18:48.287808+00:00"
   },
   "estaciones": {
     "antihue": {
@@ -118,7 +118,7 @@
     },
     "panguipulli": {
       "codigo": "10107003",
-      "nombre": "Canal Hueninca En Desague Lago Calafquen",
+      "nombre": "Canal Hueninca Lago Calafquen",
       "cuenca": "Calle-Calle",
       "lat": -39.64,
       "lon": -72.33,

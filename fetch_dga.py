@@ -1,261 +1,254 @@
 #!/usr/bin/env python3
 """
-SATH DGA Bridge — fetch_dga.py  (v2 — VipNet API pública)
+SATH DGA Bridge — fetch_dga.py v3 — VipNet API pública
 Fuente: https://vipnet.mop.gob.cl/v1/vipnet/estaciones/valor
-Sin credenciales. POST con fecha/hora actual → JSON de todas las estaciones.
-Salida: docs/dga_losrios.json  (servido por GitHub Pages)
 """
- 
-import os, sys, json, time
+import os, sys, json
 from datetime import datetime, timezone, timedelta
 import requests
  
-# ── Endpoint VipNet (público, sin autenticación) ───────────────
 VIPNET_URL = "https://vipnet.mop.gob.cl/v1/vipnet/estaciones/valor"
- 
 HEADERS = {
-    "Accept":           "application/json, text/plain, */*",
-    "Content-Type":     "application/json",
-    "Origin":           "https://vipnet.mop.gob.cl",
-    "Referer":          "https://vipnet.mop.gob.cl/",
-    "User-Agent":       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                        "AppleWebKit/537.36 (KHTML, like Gecko) "
-                        "Chrome/149.0.0.0 Safari/537.36",
-    "Accept-Language":  "es-ES,es;q=0.9",
+    "Accept":          "application/json, text/plain, */*",
+    "Content-Type":    "application/json",
+    "Origin":          "https://vipnet.mop.gob.cl",
+    "Referer":         "https://vipnet.mop.gob.cl/",
+    "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                       "AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "Chrome/149.0.0.0 Safari/537.36",
+    "Accept-Language": "es-ES,es;q=0.9",
 }
  
-# 12 estaciones SATH → código DGA como clave de búsqueda
+# Código DGA → id SATH
 SATH_STATIONS = {
-    "10122002": "antihue",
-    "10111001": "rinihue",
-    "10113003": "mamalona",
-    "10134001": "valdivia",
-    "10200001": "corral",
-    "10133000": "lacpicada",
-    "10411002": "laslomas",
-    "10351001": "tegualda",
-    "10107003": "panguipulli",
-    "10328001": "pilmaiquen",
-    "10313001": "launion",
-    "10311001": "riobueno",
+    "10122002": "antihue",    "10111001": "rinihue",
+    "10113003": "mamalona",   "10134001": "valdivia",
+    "10200001": "corral",     "10133000": "lacpicada",
+    "10411002": "laslomas",   "10351001": "tegualda",
+    "10107003": "panguipulli","10328001": "pilmaiquen",
+    "10313001": "launion",    "10311001": "riobueno",
 }
- 
 SATH_META = {
-    "antihue":     {"nombre": "Rio Calle Calle En Antilhue",            "cuenca": "Calle-Calle",  "lat": -39.85, "lon": -73.10},
-    "rinihue":     {"nombre": "Rio San Pedro En Desague Lago Rinihue",   "cuenca": "San Pedro",    "lat": -39.79, "lon": -72.43},
-    "mamalona":    {"nombre": "Rio San Pedro En Pucono",                 "cuenca": "San Pedro",    "lat": -39.58, "lon": -72.18},
-    "valdivia":    {"nombre": "Rio Cruces En Rucaco",                    "cuenca": "Cruces",       "lat": -39.64, "lon": -73.09},
-    "corral":      {"nombre": "Meteorologica Corral",                    "cuenca": "Costero",      "lat": -39.88, "lon": -73.43},
-    "lacpicada":   {"nombre": "Rio Leufucade En Purulon",                "cuenca": "Cruces",       "lat": -39.82, "lon": -73.27},
-    "laslomas":    {"nombre": "Rio Negro En Las Lomas",                  "cuenca": "Bueno-sur",    "lat": -39.94, "lon": -73.02},
-    "tegualda":    {"nombre": "Rio Toro En Tegualda",                    "cuenca": "San Pedro",    "lat": -40.17, "lon": -72.62},
-    "panguipulli": {"nombre": "Canal Hueninca En Desague Lago Calafquen","cuenca": "Calle-Calle",  "lat": -39.64, "lon": -72.33},
-    "pilmaiquen":  {"nombre": "Rio Pilmaiquen En San Pablo",             "cuenca": "Bueno-Ranco",  "lat": -40.18, "lon": -72.37},
-    "launion":     {"nombre": "Rio Llollelhue En La Union",              "cuenca": "Bueno",        "lat": -40.29, "lon": -73.09},
-    "riobueno":    {"nombre": "Rio Bueno En Bueno",                      "cuenca": "Bueno",        "lat": -40.69, "lon": -72.97},
+    "antihue":     {"nombre":"Rio Calle Calle En Antilhue",            "cuenca":"Calle-Calle", "lat":-39.85,"lon":-73.10},
+    "rinihue":     {"nombre":"Rio San Pedro En Desague Lago Rinihue",   "cuenca":"San Pedro",   "lat":-39.79,"lon":-72.43},
+    "mamalona":    {"nombre":"Rio San Pedro En Pucono",                 "cuenca":"San Pedro",   "lat":-39.58,"lon":-72.18},
+    "valdivia":    {"nombre":"Rio Cruces En Rucaco",                    "cuenca":"Cruces",      "lat":-39.64,"lon":-73.09},
+    "corral":      {"nombre":"Meteorologica Corral",                    "cuenca":"Costero",     "lat":-39.88,"lon":-73.43},
+    "lacpicada":   {"nombre":"Rio Leufucade En Purulon",                "cuenca":"Cruces",      "lat":-39.82,"lon":-73.27},
+    "laslomas":    {"nombre":"Rio Negro En Las Lomas",                  "cuenca":"Bueno-sur",   "lat":-39.94,"lon":-73.02},
+    "tegualda":    {"nombre":"Rio Toro En Tegualda",                    "cuenca":"San Pedro",   "lat":-40.17,"lon":-72.62},
+    "panguipulli": {"nombre":"Canal Hueninca Lago Calafquen",           "cuenca":"Calle-Calle", "lat":-39.64,"lon":-72.33},
+    "pilmaiquen":  {"nombre":"Rio Pilmaiquen En San Pablo",             "cuenca":"Bueno-Ranco", "lat":-40.18,"lon":-72.37},
+    "launion":     {"nombre":"Rio Llollelhue En La Union",              "cuenca":"Bueno",       "lat":-40.29,"lon":-73.09},
+    "riobueno":    {"nombre":"Rio Bueno En Bueno",                      "cuenca":"Bueno",       "lat":-40.69,"lon":-72.97},
 }
- 
 OUTPUT = "docs/dga_losrios.json"
  
  
-def build_payload(dt_cl: datetime) -> dict:
-    """Construye el payload exacto que usa VipNet en el browser."""
-    return {
-        "tipoEstacion":    0,          # 0 = todas las estaciones
-        "mapStatistic":    4,          # 4 = Más Actual
-        "currentTabIndex": 0,
-        "fetchHour":       dt_cl.hour,
-        "fetchDay":        dt_cl.strftime("%Y-%m-%d"),
-        "hoursRange":      3,          # ventana de ±3h para el dato más reciente
-    }
- 
- 
-def fetch_vipnet(dt_cl: datetime) -> list:
-    """Llama a VipNet y retorna la lista de estaciones con sus valores."""
-    payload = build_payload(dt_cl)
-    print(f"  POST {VIPNET_URL}")
-    print(f"  Payload: {json.dumps(payload)}")
- 
-    r = requests.post(VIPNET_URL, json=payload, headers=HEADERS, timeout=30)
-    r.raise_for_status()
- 
-    data = r.json()
-    print(f"  Respuesta: {r.status_code} — {len(r.content)/1024:.1f} KB")
- 
-    # La respuesta puede ser lista directa o dict con clave de datos
-    if isinstance(data, list):
-        return data
-    # Buscar clave que contenga la lista de estaciones
-    for key in ("estaciones", "data", "valores", "features", "result"):
-        if key in data and isinstance(data[key], list):
-            return data[key]
-    # Último recurso: devolver todos los valores de la respuesta
-    print(f"  Estructura respuesta: {list(data.keys()) if isinstance(data, dict) else type(data)}")
-    return []
- 
- 
-def parse_stations(raw: list) -> dict:
-    """
-    Extrae valores para las 12 estaciones SATH desde la respuesta VipNet.
-    Busca por código DGA en cualquier campo que lo contenga.
-    """
-    results = {}
- 
-    for item in raw:
-        if not isinstance(item, dict):
+def get_numeric(item, *fields):
+    """Extrae el primer valor numérico válido de los campos dados."""
+    for f in fields:
+        v = item.get(f)
+        if v is None:
             continue
- 
-        # Detectar código DGA en distintos campos posibles
-        codigo = None
-        for field in ("codigo", "code", "cod_estacion", "codigoEstacion",
-                      "id", "estacion_id", "stationCode"):
-            v = str(item.get(field, "")).strip().lstrip("0")
-            if v in [c.lstrip("0") for c in SATH_STATIONS]:
-                # Normalizar a 8 dígitos con ceros
-                codigo = v.zfill(8)
-                break
-            # También probar con ceros originales
-            v2 = str(item.get(field, "")).strip()
-            if v2 in SATH_STATIONS:
-                codigo = v2
-                break
- 
-        if not codigo or codigo not in SATH_STATIONS:
-            continue
- 
-        stn_id = SATH_STATIONS[codigo]
-        meta   = SATH_META[stn_id]
- 
-        # Extraer valor numérico (Q, nivel o PP)
-        q_val = None
-        for field in ("valor", "value", "caudal", "q", "nivel", "height",
-                      "ultimoValor", "lastValue", "datos"):
-            v = item.get(field)
-            if v is not None:
+        # Puede ser lista: tomar el último/primero válido
+        if isinstance(v, list):
+            for sub in reversed(v):
                 try:
-                    fv = float(str(v).replace(",", "."))
-                    if fv != 999.9 and fv >= 0:
-                        q_val = round(fv, 3)
-                        break
-                except (ValueError, TypeError):
-                    pass
- 
-        # Extraer fecha del dato
-        fecha = None
-        for field in ("fecha", "date", "datetime", "fechaHora",
-                      "fechaDato", "timestamp", "ultimaFecha"):
-            v = item.get(field)
-            if v:
-                fecha = str(v)
-                break
- 
-        # Detectar tipo de variable (caudal vs precipitación vs nivel)
-        variable = str(item.get("variable", item.get("nombreVariable", ""))).lower()
-        is_q  = any(k in variable for k in ["caudal", "q ", "flujo", "flow"])
-        is_pp = any(k in variable for k in ["precip", "lluvia", "pp"])
-        is_nv = any(k in variable for k in ["nivel", "height", "altura"])
- 
-        results[stn_id] = {
-            "codigo":     codigo,
-            "nombre":     meta["nombre"],
-            "cuenca":     meta["cuenca"],
-            "lat":        meta["lat"],
-            "lon":        meta["lon"],
-            "q_m3s":      q_val if is_q  or (not is_pp and not is_nv) else None,
-            "pp_mm":      q_val if is_pp else None,
-            "nivel_m":    q_val if is_nv else None,
-            "fecha_dato": fecha,
-            "variable":   str(item.get("variable", item.get("nombreVariable", "—"))),
-            "estado":     "ok" if q_val is not None else "sin_dato",
-            "raw_keys":   list(item.keys())[:8],  # debug: campos disponibles
-        }
-        print(f"    ✓ {stn_id:<12} {meta['nombre'][:35]:<35} "
-              f"val={q_val} var={variable[:20]}")
- 
-    return results
+                    fv = float(str(sub).replace(",","."))
+                    if 0 <= fv < 50000 and fv != 999.9:
+                        return round(fv,3)
+                except: pass
+        else:
+            try:
+                fv = float(str(v).replace(",","."))
+                if 0 <= fv < 50000 and fv != 999.9:
+                    return round(fv,3)
+            except: pass
+    return None
  
  
-def fill_missing(results: dict) -> dict:
-    """Agrega estaciones SATH no encontradas con estado sin_dato."""
-    for stn_id, meta in SATH_META.items():
-        if stn_id not in results:
-            cod = next(c for c, s in SATH_STATIONS.items() if s == stn_id)
-            results[stn_id] = {
-                "codigo": cod, "nombre": meta["nombre"],
-                "cuenca": meta["cuenca"], "lat": meta["lat"], "lon": meta["lon"],
-                "q_m3s": None, "pp_mm": None, "nivel_m": None,
-                "fecha_dato": None, "variable": "—", "estado": "no_encontrado",
-            }
-    return results
+def get_text(item, *fields):
+    for f in fields:
+        v = item.get(f)
+        if v: return str(v)
+    return None
+ 
+ 
+def extract_from_record(item: dict) -> tuple:
+    """
+    Extrae (q_m3s, pp_mm, nivel_m, fecha, variable) de un registro VipNet.
+    Los valores pueden estar directamente o anidados en 'parametros','datos','valores'.
+    """
+    # ── Buscar en estructuras anidadas primero ─────────────────
+    for nest_key in ("parametros", "datos", "valores", "params", "mediciones"):
+        nested = item.get(nest_key)
+        if not isinstance(nested, list) or not nested:
+            continue
+        # Iterar sobre cada parámetro anidado
+        q=None; pp=None; nv=None; fecha=None; var_name=""
+        for param in nested:
+            if not isinstance(param, dict): continue
+            vname = str(param.get("nombre","") or param.get("variable","")).lower()
+            val   = get_numeric(param, "valor","value","ultimo","ultimoValor","lastValue")
+            fec   = get_text(param, "fecha","date","fechaHora","ultimaFecha","timestamp")
+            if fec: fecha = fec
+            if any(k in vname for k in ["caudal","q ","flujo","flow"]):
+                if val is not None: q = val; var_name = "Caudal"
+            elif any(k in vname for k in ["precip","lluvia","pp"]):
+                if val is not None: pp = val; var_name = "Precipitación"
+            elif any(k in vname for k in ["nivel","altura","height"]):
+                if val is not None: nv = val; var_name = "Nivel"
+            else:
+                # Primer valor numérico disponible como fallback
+                if val is not None and q is None and pp is None and nv is None:
+                    q = val; var_name = vname[:30]
+        if q or pp or nv:
+            return q, pp, nv, fecha, var_name
+ 
+    # ── Buscar directamente en el registro ────────────────────
+    q  = get_numeric(item, "valor","value","caudal","q","ultimoValor","lastValue","dato")
+    pp = get_numeric(item, "precipitacion","pp","lluvia") if q is None else None
+    nv = get_numeric(item, "nivel","altura","height")     if q is None else None
+    fec = get_text(item, "fecha","date","fechaHora","ultimaFecha","fechaDato","timestamp")
+    var = get_text(item, "variable","nombreVariable","tipoVariable") or "—"
+    return q, pp, nv, fec, var
  
  
 def main():
     now_utc = datetime.now(timezone.utc)
     now_cl  = now_utc.astimezone(timezone(timedelta(hours=-4)))
  
-    print("=" * 65)
-    print(f"SATH DGA Bridge v2 — VipNet API")
-    print(f"Fecha/hora Chile: {now_cl.strftime('%Y-%m-%d %H:%M')}  "
-          f"(UTC: {now_utc.strftime('%H:%M')})")
-    print("=" * 65)
+    print("="*65)
+    print(f"SATH DGA Bridge v3 — VipNet · {now_cl.strftime('%Y-%m-%d %H:%M')} CL")
+    print("="*65)
  
-    # ── Fetch VipNet ─────────────────────────────────────────────
-    print("\n[1/3] Consultando VipNet MOP (público, sin credenciales)...")
-    raw  = []
-    ok   = False
-    err  = ""
- 
-    # Intentar hora actual, luego hora anterior como fallback
-    for hora_offset in [0, -1, -2]:
-        dt_try = now_cl + timedelta(hours=hora_offset)
+    # ── 1. Fetch VipNet ───────────────────────────────────────
+    print("\n[1/3] VipNet POST...")
+    raw = []; ok = False
+    for offset in [0, -1, -2]:
+        dt = now_cl + timedelta(hours=offset)
+        payload = {
+            "tipoEstacion": 0, "mapStatistic": 4,
+            "currentTabIndex": 0,
+            "fetchHour": dt.hour,
+            "fetchDay":  dt.strftime("%Y-%m-%d"),
+            "hoursRange": 3,
+        }
         try:
-            raw = fetch_vipnet(dt_try)
-            if raw:
-                ok = True
-                break
+            r = requests.post(VIPNET_URL, json=payload, headers=HEADERS, timeout=30)
+            r.raise_for_status()
+            data = r.json()
+            # Normalizar: puede ser lista o dict con clave de lista
+            if isinstance(data, list):
+                raw = data
+            else:
+                for k in ("estaciones","data","features","result","registros"):
+                    if isinstance(data.get(k), list):
+                        raw = data[k]; break
+                if not raw:
+                    raw = list(data.values())[0] if data else []
+            print(f"  offset={offset}h → {r.status_code} {len(r.content)/1024:.1f}KB "
+                  f"→ {len(raw)} registros")
+            if raw: ok = True; break
         except Exception as e:
-            err = str(e)
-            print(f"  ✗ offset {hora_offset}h: {err[:80]}")
+            print(f"  offset={offset}h → ERROR: {e}")
  
-    print(f"\n  Total registros recibidos: {len(raw)}")
-    if raw:
-        # Mostrar muestra de la estructura para debug
-        sample = raw[0] if raw else {}
-        print(f"  Campos en primer registro: {list(sample.keys())[:10]}")
+    if not raw:
+        print("  ✗ Sin respuesta de VipNet")
+        _save_empty(now_utc, now_cl, False, 0)
+        return 0
  
-    # ── Parsear ───────────────────────────────────────────────────
-    print(f"\n[2/3] Extrayendo 12 estaciones SATH...")
-    results = parse_stations(raw)
-    results = fill_missing(results)
+    # ── DEBUG: mostrar registro completo de una estación SATH ─
+    print("\n  DEBUG — estructura del primer registro:")
+    print(f"  {json.dumps(raw[0], ensure_ascii=False)[:500]}")
  
-    n_ok = sum(1 for v in results.values() if v["estado"] == "ok")
+    # Buscar el primer registro de una estación SATH para ver su estructura
+    for item in raw:
+        cod = str(item.get("codigoEstacion","") or item.get("codigo","")).strip()
+        if cod in SATH_STATIONS:
+            print(f"\n  DEBUG — registro SATH encontrado ({cod}):")
+            print(f"  {json.dumps(item, ensure_ascii=False)[:800]}")
+            break
+ 
+    # ── 2. Parsear ────────────────────────────────────────────
+    print(f"\n[2/3] Extrayendo 12 estaciones SATH de {len(raw)} registros...")
+    results = {}
+    for item in raw:
+        # codigoEstacion es el campo correcto según el log anterior
+        cod = str(item.get("codigoEstacion","") or item.get("codigo","")).strip()
+        if cod not in SATH_STATIONS:
+            # También intentar sin cero inicial
+            cod_strip = cod.lstrip("0")
+            cod = next((c for c in SATH_STATIONS if c.lstrip("0")==cod_strip), None)
+            if not cod: continue
+ 
+        stn_id = SATH_STATIONS[cod]
+        meta   = SATH_META[stn_id]
+        q, pp, nv, fecha, var = extract_from_record(item)
+ 
+        results[stn_id] = {
+            "codigo": cod, "nombre": meta["nombre"],
+            "cuenca": meta["cuenca"], "lat": meta["lat"], "lon": meta["lon"],
+            "q_m3s":     q,
+            "pp_mm":     pp,
+            "nivel_m":   nv,
+            "fecha_dato":fecha,
+            "variable":  var,
+            "estado":    "ok" if (q or pp or nv) is not None else "sin_valor",
+        }
+        icon = "✓" if results[stn_id]["estado"]=="ok" else "~"
+        print(f"  [{icon}] {stn_id:<12} {meta['nombre'][:30]:<30} "
+              f"Q={q} PP={pp} NV={nv} var={var[:20]}")
+ 
+    # Rellenar faltantes
+    for stn_id, meta in SATH_META.items():
+        if stn_id not in results:
+            cod = next(c for c,s in SATH_STATIONS.items() if s==stn_id)
+            results[stn_id] = {
+                "codigo":cod,"nombre":meta["nombre"],"cuenca":meta["cuenca"],
+                "lat":meta["lat"],"lon":meta["lon"],
+                "q_m3s":None,"pp_mm":None,"nivel_m":None,
+                "fecha_dato":None,"variable":"—","estado":"no_encontrado",
+            }
+ 
+    n_ok = sum(1 for v in results.values() if v["estado"]=="ok")
     print(f"\n  Estaciones con dato: {n_ok}/12")
  
-    # ── Guardar JSON ─────────────────────────────────────────────
+    # ── 3. Guardar ────────────────────────────────────────────
     output = {
         "meta": {
-            "timestamp_utc":     now_utc.isoformat(),
-            "timestamp_chile":   now_cl.isoformat(),
-            "fuente":            "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
-            "endpoint":          VIPNET_URL,
-            "aviso":             "Datos provisorios sujetos a revisión — DGA/MOP",
-            "fetch_ok":          ok,
-            "n_estaciones_ok":   n_ok,
-            "n_estaciones":      12,
-            "n_raw_registros":   len(raw),
-            "prox_actualizacion": (now_utc + timedelta(hours=1)).isoformat(),
+            "timestamp_utc":    now_utc.isoformat(),
+            "timestamp_chile":  now_cl.isoformat(),
+            "fuente":           "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
+            "endpoint":         VIPNET_URL,
+            "aviso":            "Datos provisorios sujetos a revisión — DGA/MOP",
+            "fetch_ok":         ok,
+            "n_estaciones_ok":  n_ok,
+            "n_estaciones":     12,
+            "n_raw_registros":  len(raw),
+            "prox_actualizacion": (now_utc+timedelta(hours=1)).isoformat(),
         },
         "estaciones": results,
     }
- 
     print(f"\n[3/3] Guardando → {OUTPUT}")
     os.makedirs("docs", exist_ok=True)
-    with open(OUTPUT, "w", encoding="utf-8") as f:
-        json.dump(output, f, ensure_ascii=False, indent=2)
- 
-    print(f"  ✓ {os.path.getsize(OUTPUT):,} bytes")
-    print(f"\n{'✓ COMPLETADO' if n_ok > 0 else '⚠ SIN DATOS — revisar estructura respuesta'}")
+    with open(OUTPUT,"w",encoding="utf-8") as f:
+        json.dump(output,f,ensure_ascii=False,indent=2)
+    sz = os.path.getsize(OUTPUT)
+    print(f"  ✓ {sz:,} bytes · {n_ok}/12 estaciones con dato")
     return 0
+ 
+ 
+def _save_empty(now_utc, now_cl, ok, n_ok):
+    empty = {
+        "meta": {"timestamp_utc":now_utc.isoformat(),"fetch_ok":ok,
+                 "n_estaciones_ok":n_ok,"n_estaciones":12},
+        "estaciones": {}
+    }
+    os.makedirs("docs", exist_ok=True)
+    with open(OUTPUT,"w") as f:
+        json.dump(empty,f,indent=2)
  
  
 if __name__ == "__main__":

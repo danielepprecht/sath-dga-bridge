@@ -1,15 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-07T01:53:42.903187+00:00",
-    "timestamp_chile": "2026-07-06T21:53:42.903187-04:00",
+    "timestamp_utc": "2026-07-07T02:01:19.316836+00:00",
+    "timestamp_chile": "2026-07-06T22:01:19.316836-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
-    "endpoint": "https://vipnet.mop.gob.cl/v1/vipnet/estaciones/valor",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP",
     "fetch_ok": true,
     "n_estaciones_ok": 4,
     "n_estaciones": 12,
-    "n_raw_registros": 1024,
-    "prox_actualizacion": "2026-07-07T02:53:42.903187+00:00"
+    "n_raw_registros": 4202,
+    "prox_actualizacion": "2026-07-07T03:01:19.316836+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -44,7 +43,7 @@
       "cuenca": "Cruces",
       "lat": -39.82,
       "lon": -73.27,
-      "q_m3s": 0.4,
+      "q_m3s": 0.5,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,

@@ -1,14 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-08T20:47:03.063492+00:00",
-    "timestamp_chile": "2026-07-08T16:47:03.063492-04:00",
+    "timestamp_utc": "2026-07-09T08:56:40.882113+00:00",
+    "timestamp_chile": "2026-07-09T04:56:40.882113-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "fetch_ok": true,
-    "n_estaciones_ok": 8,
+    "n_estaciones_ok": 7,
     "n_estaciones": 12,
     "n_raw_registros": 1024,
-    "prox_actualizacion": "2026-07-08T21:47:03.063492+00:00"
+    "prox_actualizacion": "2026-07-09T09:56:40.882113+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -45,13 +45,13 @@
       "cuenca": "Cruces",
       "lat": -39.82,
       "lon": -73.27,
-      "q_m3s": 0.0,
+      "q_m3s": null,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "RIO LEUFUCADE EN PURULON",
       "es_proxy": false,
-      "estado": "ok"
+      "estado": "sin_valor"
     },
     "riobueno": {
       "codigo": "10327006",
@@ -73,7 +73,7 @@
       "cuenca": "Calle-Calle",
       "lat": -39.64,
       "lon": -72.33,
-      "q_m3s": 1.2,
+      "q_m3s": 0.0,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -87,7 +87,7 @@
       "cuenca": "Costero",
       "lat": -39.88,
       "lon": -73.43,
-      "q_m3s": 2.3,
+      "q_m3s": 0.0,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,

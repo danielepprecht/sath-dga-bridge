@@ -1,14 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-10T17:30:05.252020+00:00",
-    "timestamp_chile": "2026-07-10T13:30:05.252020-04:00",
+    "timestamp_utc": "2026-07-10T21:39:01.887178+00:00",
+    "timestamp_chile": "2026-07-10T17:39:01.887178-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "fetch_ok": true,
     "n_estaciones_ok": 8,
     "n_estaciones": 12,
     "n_raw_registros": 1024,
-    "prox_actualizacion": "2026-07-10T18:30:05.252020+00:00"
+    "prox_actualizacion": "2026-07-10T22:39:01.887178+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -73,7 +73,7 @@
       "cuenca": "Calle-Calle",
       "lat": -39.64,
       "lon": -72.33,
-      "q_m3s": 0.0,
+      "q_m3s": 1.8,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -101,7 +101,7 @@
       "cuenca": "San Pedro",
       "lat": -39.58,
       "lon": -72.18,
-      "q_m3s": 0.3,
+      "q_m3s": 0.0,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -115,7 +115,7 @@
       "cuenca": "San Pedro",
       "lat": -39.79,
       "lon": -72.43,
-      "q_m3s": 0.0,
+      "q_m3s": 0.4,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,

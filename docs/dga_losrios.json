@@ -1,14 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-10T10:37:08.796189+00:00",
-    "timestamp_chile": "2026-07-10T06:37:08.796189-04:00",
+    "timestamp_utc": "2026-07-10T17:30:05.252020+00:00",
+    "timestamp_chile": "2026-07-10T13:30:05.252020-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "fetch_ok": true,
     "n_estaciones_ok": 8,
     "n_estaciones": 12,
     "n_raw_registros": 1024,
-    "prox_actualizacion": "2026-07-10T11:37:08.796189+00:00"
+    "prox_actualizacion": "2026-07-10T18:30:05.252020+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -17,7 +17,7 @@
       "cuenca": "Bueno-Ranco",
       "lat": -40.18,
       "lon": -72.37,
-      "q_m3s": 3.2,
+      "q_m3s": 0.0,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -31,7 +31,7 @@
       "cuenca": "Bueno",
       "lat": -40.29,
       "lon": -73.09,
-      "q_m3s": 1.2,
+      "q_m3s": 0.0,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -59,7 +59,7 @@
       "cuenca": "Bueno",
       "lat": -40.69,
       "lon": -72.97,
-      "q_m3s": 1.2,
+      "q_m3s": 0.0,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -87,7 +87,7 @@
       "cuenca": "Costero",
       "lat": -39.88,
       "lon": -73.43,
-      "q_m3s": 0.2,
+      "q_m3s": 0.0,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -101,7 +101,7 @@
       "cuenca": "San Pedro",
       "lat": -39.58,
       "lon": -72.18,
-      "q_m3s": 0.8,
+      "q_m3s": 0.3,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,

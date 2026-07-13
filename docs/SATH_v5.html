@@ -733,14 +733,24 @@ async function fetchOM(id){
   }catch(e){fcstData[id]={sum:[null,null,null],prob:[null,null,null],realIFA:null,prospectivoIFA:null,ok:false};}
 }
 async function fetchAllOM(){
-  await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));
+  // Lazy load: activa primero, resto con delay para evitar 429
+  await fetchOM(activeStn);
   rebuildALLFromRealData(activeStn);
   updSATHFromRealData(activeStn);
   renderFcstSelected(activeStn);
-  renderGradient();
   updRealIFA();
   fetchFloodForecast(activeStn);
-  document.getElementById('fcst-src').textContent=`Open-Meteo ECMWF 9km + GloFAS · 12 estaciones · ${new Date().toLocaleTimeString('es-CL')}`;
+  document.getElementById('fcst-src').textContent=`Open-Meteo ECMWF 9km · ${new Date().toLocaleTimeString('es-CL')}`;
+  // Resto de estaciones en background con delay para no saturar API
+  (async function(){
+    var rest=Object.keys(STNS).filter(function(id){return id!==activeStn;});
+    for(var i=0;i<rest.length;i++){
+      await new Promise(function(r){setTimeout(r,400);});
+      await fetchOM(rest[i]);
+    }
+    renderGradient();
+    document.getElementById('fcst-src').textContent=`Open-Meteo ECMWF 9km + GloFAS · 12 estaciones · ${new Date().toLocaleTimeString('es-CL')}`;
+  })();
 }
 
 function updRealIFA(){

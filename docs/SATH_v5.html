@@ -461,7 +461,7 @@ const fcstData={};
 let windyData={};
 let claudeKey=sessionStorage.getItem('cogrid_claude_key')||'';
 let windyKey=sessionStorage.getItem('cogrid_windy_key')||'';
-let activeStn='antihue',simH=0,paused=false,speed=2,iv=null,prevIRC=0;
+let activeStn='antihue',simH=15,paused=true,speed=2,iv=null,prevIRC=0;
 
 // ═══════════════════════════════════════════════════
 // BUILD STATION TABS
@@ -494,6 +494,60 @@ function selectStn(id){
 // ═══════════════════════════════════════════════════
 // DATA GENERATION
 // ═══════════════════════════════════════════════════
+// === NR REAL desde Open-Meteo + DGA Bridge ===
+const NR_CAL={tvc:{p:0.40,a:1.06,x:3.81},ifa:{p:51.8,a:81.7,x:115.8}};
+const _prevQ={};
+function scoreNR(tvc,ifa){
+  var tp=NR_CAL.tvc.p,ta=NR_CAL.tvc.a,tx=NR_CAL.tvc.x;
+  var ip=NR_CAL.ifa.p,ia=NR_CAL.ifa.a,ix=NR_CAL.ifa.x;
+  var ts=tvc>=tx?Math.min(100,90+(tvc-tx)/tx*15):tvc>=ta?80+(tvc-ta)/(tx-ta)*10:tvc>=tp?70+(tvc-tp)/(ta-tp)*10:tvc/tp*65;
+  var is_=ifa>=ix?Math.min(100,90+(ifa-ix)/ix*10):ifa>=ia?80+(ifa-ia)/(ix-ia)*10:ifa>=ip?70+(ifa-ip)/(ia-ip)*10:ifa/ip*65;
+  var nr=Math.max(ts,is_);
+  if(ts>=70&&is_>=70)nr=Math.min(100,nr+0.1*Math.min(ts,is_));
+  return{nr:Math.min(100,Math.round(nr)),ts:Math.round(ts),is_:Math.round(is_)};
+}
+function computeRealNR(id){
+  var fd=fcstData[id];
+  if(!fd||!fd.ok)return null;
+  var realIFA=fd.realIFA||0,prospIFA=fd.prospectivoIFA||0,tvcReal=0;
+  if(typeof dgaData!=="undefined"&&dgaData&&dgaData.estaciones){
+    var stn=dgaData.estaciones[id];
+    if(stn&&stn.q_m3s!==null){
+      var prev=_prevQ[id];
+      if(prev!==null&&prev!==undefined)tvcReal=Math.max(0,stn.q_m3s-prev);
+      _prevQ[id]=stn.q_m3s;
+    }
+  }
+  var nrO=scoreNR(tvcReal,realIFA),nrP=scoreNR(tvcReal,prospIFA);
+  return{nrOper:Math.max(nrO.nr,nrP.nr),ts:Math.max(nrO.ts,nrP.ts),
+    is_:Math.max(nrO.is_,nrP.is_),tvcReal:Math.round(tvcReal*100)/100,
+    realIFA:Math.round(realIFA),prospIFA:Math.round(prospIFA)};
+}
+function updSATHFromRealData(id){
+  var rn=computeRealNR(id);if(!rn)return;
+  var nr=rn.nrOper;
+  var nf=document.getElementById('nr-fill');
+  if(nf){nf.style.width=Math.min(100,nr)+'%';
+    nf.style.background=nr>=90?'#dc2626':nr>=80?'#ea580c':nr>=70?'#d97706':'#16a34a';}
+  var vi=document.getElementById('v-irc');if(vi)vi.textContent=nr;
+  updSATHSemaphore(nr);
+  var a=alrt(nr/100),bg=document.getElementById('badge');
+  if(bg){bg.className='badge '+a.cls+(nr>=70?' pulse':'');
+    bg.innerHTML='<i class="ti '+a.icon+'"></i> '+a.txt;}
+  var bnn=document.getElementById('bnn');
+  var info='TVC DGA: '+rn.tvcReal+' m3/s*h | IFA obs: '+rn.realIFA+'mm -> prox: '+rn.prospIFA+'mm';
+  if(bnn){
+    if(nr>=90){bnn.className='bnn bnn-alarma';bnn.style.display='flex';
+      bnn.innerHTML='<strong>ALARMA - NR '+nr+'/100</strong> | '+info;}
+    else if(nr>=80){bnn.className='bnn bnn-alerta';bnn.style.display='flex';
+      bnn.innerHTML='<strong>ALERTA - NR '+nr+'/100</strong> | '+info;}
+    else if(nr>=70){bnn.className='bnn bnn-precaucion';bnn.style.display='flex';
+      bnn.innerHTML='<strong>PRECAUCION - NR '+nr+'/100</strong> | '+info;}
+    else{bnn.style.display='none';bnn.className='bnn';}
+  }
+  var ei=document.getElementById('v-ifa');if(ei)ei.textContent=rn.realIFA;
+}
+
 function genData(){
   const d=[];
   for(let h=0;h<=72;h++){
@@ -563,6 +617,7 @@ async function fetchOM(id){
 }
 async function fetchAllOM(){
   await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));
+  updSATHFromRealData(activeStn);
   renderFcstSelected(activeStn);
   renderGradient();
   updRealIFA();

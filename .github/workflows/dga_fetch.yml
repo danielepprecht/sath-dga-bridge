@@ -2,12 +2,9 @@ name: SATH — DGA Data Bridge
 
 on:
   schedule:
-    # Cada hora en punto (UTC) — equivale a la hora en punto hora Chile
     - cron: '5 * * * *'
-  # Ejecución manual desde GitHub Actions tab
   workflow_dispatch:
 
-# Permisos para que el workflow haga commit al repo (GitHub Pages)
 permissions:
   contents: write
 
@@ -18,42 +15,39 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      # 1. Checkout del repositorio
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      # 2. Python 3.11
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      # 3. Dependencias
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # 4. Ejecutar scraper con credenciales DGA desde Secrets
       - name: Fetch DGA data
         env:
           DGA_USER: ${{ secrets.DGA_USER }}
           DGA_PASS: ${{ secrets.DGA_PASS }}
         run: python fetch_dga.py
 
-      # 5. Commit y push del JSON actualizado
-      - name: Commit updated JSON
+      - name: Patch SATH dashboard
+        run: python patch_sath.py
+
+      - name: Commit updated files
         run: |
           git config --global user.email "sath-bridge[bot]@github.com"
           git config --global user.name  "SATH DGA Bridge"
-          git add docs/dga_losrios.json docs/index.html 2>/dev/null || true
-          # Solo commitea si hay cambios reales en los datos
+          git add docs/dga_losrios.json docs/SATH_v5.html 2>/dev/null || true
           if git diff --staged --quiet; then
-            echo "Sin cambios en los datos — nada que commitear"
+            echo "Sin cambios"
           else
             TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
-            git commit -m "DGA data update: ${TIMESTAMP}"
+            git commit -m "DGA data + SATH patch: ${TIMESTAMP}"
             git push
-            echo "✓ JSON actualizado y publicado en GitHub Pages"
+            echo "Publicado en GitHub Pages"
           fi

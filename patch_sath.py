@@ -1,59 +1,10 @@
 #!/usr/bin/env python3
-"""patch_sath.py — Aplica y corrige actualizaciones SATH_v5.html"""
-import os, sys
-
+"""patch_sath.py — Aplica y corrige SATH_v5.html — versión limpia"""
+import os, sys, re
+ 
 SATH = "docs/SATH_v5.html"
-
-def patch(html):
-    orig = html
-    log = []
-
-    # ── FIX CRÍTICO: eliminar líneas con 'id' no definido en fetchAllOM ──
-    # El parche anterior inyectó rebuildALLFromRealData(id) dentro de
-    # fetchAllOM() donde 'id' no está definido → ReferenceError → todo rompe
-    BAD1 = ("  updRealIFA();\n"
-            "  rebuildALLFromRealData(id);\n"
-            "  updSATHFromRealData(id);\n"
-            "  fetchFloodForecast(activeStn);")
-    OK1  = ("  updRealIFA();\n"
-            "  fetchFloodForecast(activeStn);")
-    if BAD1 in html:
-        html = html.replace(BAD1, OK1, 1)
-        log.append("FIX CRÍTICO: eliminadas líneas 'id' no definido en fetchAllOM")
-
-    # Variante 2 del mismo bug
-    BAD2 = ("  rebuildALLFromRealData(id);\n"
-            "  updSATHFromRealData(id);\n"
-            "  fetchFloodForecast(activeStn);")
-    OK2  = "  fetchFloodForecast(activeStn);"
-    if BAD2 in html:
-        html = html.replace(BAD2, OK2, 1)
-        log.append("FIX CRÍTICO v2: eliminadas líneas 'id' no definido")
-
-    # ── simH=72 por defecto ──────────────────────────────────────────────
-    if "simH=0,paused=false" in html:
-        html = html.replace("simH=0,paused=false","simH=72,paused=true",1)
-        log.append("simH=72")
-
-    # ── Key migration Windy/Claude ───────────────────────────────────────
-    for old_key in [
-        "windyKey=sessionStorage.getItem('cogrid_windy_key')||'';",
-        "windyKey=sessionStorage.getItem('equipo de alerta_windy_key')||'';"
-    ]:
-        if old_key in html and "Migracion automatica" not in html:
-            migration = (old_key + "\n"
-                "['equipo de alerta','sath','COGRID','senapred'].forEach(function(p){\n"
-                "  var ow=sessionStorage.getItem(p+'_windy_key');\n"
-                "  if(ow&&!windyKey){windyKey=ow;}\n"
-                "  var oc=sessionStorage.getItem(p+'_claude_key');\n"
-                "  if(oc&&!claudeKey){claudeKey=oc;}\n"
-                "});\n// Migracion automatica")
-            html = html.replace(old_key, migration, 1)
-            log.append("Key migration Windy/Claude")
-            break
-
-    # ── NR real: scoreNR + buildRealData + rebuildALLFromRealData ────────
-    NR_REAL = """
+ 
+NR_BLOCK = """
 // === NR REAL + buildRealData desde Open-Meteo ERA5 ===
 const NR_CAL={tvc:{p:0.40,a:1.06,x:3.81},ifa:{p:51.8,a:81.7,x:115.8}};
 const _prevQ={};
@@ -129,7 +80,7 @@ function updSATHFromRealData(id){
   var vi=document.getElementById('v-irc');if(vi)vi.textContent=nr;
   if(typeof updSATHSemaphore==='function')updSATHSemaphore(nr);
   var bnn=document.getElementById('bnn');
-  var info='IFA obs: '+rn.realIFA+'mm -> prox: '+rn.prospIFA+'mm | TVC DGA: '+rn.tvcReal+' m3/s';
+  var info='IFA obs: '+rn.realIFA+'mm -> prox: '+rn.prospIFA+'mm';
   if(bnn){
     if(nr>=90){bnn.className='bnn bnn-alarma';bnn.style.display='flex';
       bnn.innerHTML='<strong>ALARMA NR '+nr+'/100</strong> | '+info;}
@@ -141,65 +92,118 @@ function updSATHFromRealData(id){
   }
 }
 """
-    TARGET = "\nfunction genData(){"
-    if "function buildRealData(" not in html and TARGET in html:
-        html = html.replace(TARGET, NR_REAL + TARGET, 1)
-        log.append("scoreNR + buildRealData + rebuildALLFromRealData + NR real")
-
-    # ── Hook fetchAllOM: rebuild desde datos reales ──────────────────────
-    # Solo agrega rebuildALLFromRealData(activeStn) — NO 'id' aquí
-    for old_hook, new_hook in [
-        ("await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  rebuildALLFromRealData(activeStn);\n  updSATHFromRealData(activeStn);\n  renderFc",
-         None),  # ya correcto
-        ("await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  renderFc",
-         "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  rebuildALLFromRealData(activeStn);\n  updSATHFromRealData(activeStn);\n  renderFc"),
-    ]:
-        if new_hook and old_hook in html and "rebuildALLFromRealData(activeStn)" not in html:
-            html = html.replace(old_hook, new_hook)
-            log.append("Hook fetchAllOM")
-            break
-
-    # ── Hook cambio de estación (usa variable 'id' que SÍ está definida) ─
-    for old_h, new_h in [
-        ("updRealIFA();\n  updSATHFromRealData(id);\n  fetchFloodForecast",
-         "updRealIFA();\n  rebuildALLFromRealData(id);\n  updSATHFromRealData(id);\n  fetchFloodForecast"),
-        ("updRealIFA();\n  fetchFloodForecast",
-         "updRealIFA();\n  rebuildALLFromRealData(id);\n  updSATHFromRealData(id);\n  fetchFloodForecast"),
-    ]:
-        if old_h in html and "rebuildALLFromRealData(id)" not in html:
-            html = html.replace(old_h, new_h)
-            log.append("Hook cambio estacion")
-            break
-
-    return html, log, html != orig
-
+ 
+def remove_duplicate_nr_blocks(js):
+    """Elimina TODOS los bloques NR duplicados del JS y deja solo uno."""
+    # Marcadores del bloque NR que el parche inyecta
+    START = "// === NR REAL + buildRealData"
+    END_MARKER = "function updSATHFromRealData(id){"
+ 
+    positions = [m.start() for m in re.finditer(re.escape(START), js)]
+    if len(positions) <= 1:
+        return js, False  # sin duplicados
+ 
+    # Encontrar el fin del último bloque updSATHFromRealData
+    def find_block_end(js, start):
+        idx = js.find(END_MARKER, start)
+        if idx < 0: return start + 100
+        # Buscar la } de cierre de la función
+        depth = 0
+        for i in range(idx, min(idx+3000, len(js))):
+            if js[i] == '{': depth += 1
+            elif js[i] == '}':
+                depth -= 1
+                if depth == 0: return i + 1
+        return idx + 500
+ 
+    # Eliminar todos los bloques excepto el último
+    blocks_to_remove = positions[:-1]  # mantener el último
+    for pos in reversed(blocks_to_remove):
+        end = find_block_end(js, pos)
+        js = js[:pos] + js[end:]
+ 
+    return js, True
+ 
+ 
+def patch(html):
+    log = []
+ 
+    # Extraer JS
+    match = re.search(r'(<script>)(.*?)(</script>)', html, re.DOTALL)
+    if not match:
+        print("ERROR: no se encontró bloque <script>"); return html, log
+    pre, js, post = match.group(1), match.group(2), match.group(3)
+    orig_js = js
+ 
+    # ── 1. Eliminar duplicados const NR_CAL / _prevQ / funciones ─────────
+    js, removed = remove_duplicate_nr_blocks(js)
+    if removed:
+        log.append("Eliminados bloques NR duplicados (fix SyntaxError const)")
+ 
+    # ── 2. Eliminar bug: id no definido en fetchAllOM ─────────────────────
+    bad = ("  rebuildALLFromRealData(id);\n"
+           "  updSATHFromRealData(id);\n"
+           "  fetchFloodForecast(activeStn);")
+    ok  = "  fetchFloodForecast(activeStn);"
+    if bad in js:
+        js = js.replace(bad, ok, 1)
+        log.append("Eliminado id-no-definido en fetchAllOM")
+ 
+    # ── 3. Asegurar que el bloque NR existe (exactamente una vez) ─────────
+    if "function buildRealData(" not in js:
+        target = "\nfunction genData(){"
+        if target in js:
+            js = js.replace(target, NR_BLOCK + target, 1)
+            log.append("Inyectado bloque NR REAL")
+ 
+    # ── 4. Hook fetchAllOM (solo si no está ya) ───────────────────────────
+    old_fa = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  renderFc"
+    new_fa = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  rebuildALLFromRealData(activeStn);\n  updSATHFromRealData(activeStn);\n  renderFc"
+    if old_fa in js and "rebuildALLFromRealData(activeStn)" not in js:
+        js = js.replace(old_fa, new_fa)
+        log.append("Hook fetchAllOM")
+ 
+    # ── 5. Hook cambio estación ───────────────────────────────────────────
+    old_stn = "updRealIFA();\n  fetchFloodForecast"
+    new_stn = "updRealIFA();\n  rebuildALLFromRealData(id);\n  updSATHFromRealData(id);\n  fetchFloodForecast"
+    if old_stn in js and "rebuildALLFromRealData(id)" not in js:
+        js = js.replace(old_stn, new_stn)
+        log.append("Hook cambio estacion")
+ 
+    # ── 6. Verificar JS balanceado ────────────────────────────────────────
+    op = js.count('{'); cl = js.count('}')
+    if op != cl:
+        print(f"ERROR JS no balanceado ({op} vs {cl}) — abortando")
+        return html, []
+ 
+    # ── 7. Verificar no quedan const duplicados en scope global ──────────
+    top_consts = re.findall(r'(?:^|\n)const\s+(\w+)\s*=', js)
+    dup = {k:v for k,v in Counter(top_consts).items() if v > 1}
+    if dup:
+        print(f"ADVERTENCIA: consts duplicados en scope global: {dup}")
+ 
+    if js == orig_js:
+        return html, log
+ 
+    new_html = html[:match.start()] + pre + js + post + html[match.end():]
+    return new_html, log
+ 
 def main():
+    from collections import Counter
     if not os.path.exists(SATH):
         print(f"ERROR: {SATH} no encontrado"); return 1
     with open(SATH, encoding="utf-8") as f:
         html = f.read()
     print(f"Archivo: {len(html):,} bytes")
-    html_new, log, changed = patch(html)
-
-    import re
-    scripts = re.findall(r'<script>(.*?)</script>', html_new, re.DOTALL)
-    js = scripts[0] if scripts else ''
-    op = js.count('{'); cl = js.count('}')
-    balanced = op == cl
-    print(f"JS balanceado: {balanced} ({{ {op}  }} {cl})")
-
-    if not balanced:
-        print("ERROR: JS no balanceado — abortando")
-        return 1
-
-    if changed:
+    new_html, log = patch(html)
+    if log:
         with open(SATH,"w",encoding="utf-8") as f:
-            f.write(html_new)
-        print(f"Guardado: {len(html_new):,} bytes")
+            f.write(new_html)
+        print(f"Guardado: {len(new_html):,} bytes")
         for l in log: print(f"  [+] {l}")
     else:
-        print("Sin cambios necesarios")
+        print("Sin cambios")
     return 0
-
+ 
 if __name__=="__main__":
     sys.exit(main())

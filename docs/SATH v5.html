@@ -510,7 +510,7 @@ function selectStn(id){
 // DATA GENERATION
 // ═══════════════════════════════════════════════════
 // === NR REAL + buildRealData desde Open-Meteo ERA5 ===
-const NR_CAL={tvc:{p:0.40,a:1.06,x:3.81},ifa:{p:51.8,a:81.7,x:115.8}};
+const NR_CAL={tvc:{p:0.40,a:1.06,x:3.81},ifa:{p:51.8,a:81.7,x:115.8},sat:{p:100,a:200,x:350}};
 const _prevQ={};
 function scoreNR(tvc,ifa){
   var tp=NR_CAL.tvc.p,ta=NR_CAL.tvc.a,tx=NR_CAL.tvc.x;
@@ -521,14 +521,26 @@ function scoreNR(tvc,ifa){
   if(ts>=70&&is_>=70)nr=Math.min(100,nr+0.1*Math.min(ts,is_));
   return{nr:Math.min(100,Math.round(nr)),ts:Math.round(ts),is_:Math.round(is_)};
 }
+
+function satFactor(ifa168){
+  // Factor de saturación del suelo basado en IFA 7 días
+  // Los Ríos: PP media semanal invierno ~80-150mm; saturación >200mm
+  if(!ifa168||ifa168<100)return 1.0;
+  if(ifa168<200)return 1.0+(ifa168-100)/100*0.10;  // +10% máx
+  if(ifa168<350)return 1.10+(ifa168-200)/150*0.15; // +15% adicional
+  return 1.25;  // suelo saturado: +25% máx
+}
 function buildRealData(id){
   var fd=fcstData[id];
   if(!fd||!fd.ok||!fd.hourlyPP||fd.hourlyPP.length<73)return null;
   var hrPP=fd.hourlyPP;
   var curQ=(typeof dgaData!=='undefined'&&dgaData&&dgaData.estaciones&&dgaData.estaciones[id])?dgaData.estaciones[id].q_m3s||0:0;
   var d=[];
+  // hourlyPP now has indices 0..239 (168 past + 72 future)
+  // Use hrPP[96..168] for the 72h window matching realIFA
+  var ppOffset=fd.hourlyPP.length>=240?96:0;
   for(var h=0;h<=72;h++){
-    var pp=Math.max(0,+(hrPP[h]||0));
+    var pp=Math.max(0,+(hrPP[ppOffset+h]||0));
     d.push({h:h,pp:+pp.toFixed(1),q:+curQ.toFixed(1)});
   }
   for(var i=0;i<d.length;i++){
@@ -572,10 +584,15 @@ function computeRealNR(id){
       _prevQ[id]=stn.q_m3s;
     }
   }
+  var realIFA168=fd.realIFA168||0;
   var nrO=scoreNR(tvcReal,realIFA),nrP=scoreNR(tvcReal,prospIFA);
-  return{nrOper:Math.max(nrO.nr,nrP.nr),ts:Math.max(nrO.ts,nrP.ts),
-    is_:Math.max(nrO.is_,nrP.is_),tvcReal:Math.round(tvcReal*100)/100,
-    realIFA:Math.round(realIFA),prospIFA:Math.round(prospIFA)};
+  var nrBase=Math.max(nrO.nr,nrP.nr);
+  var sf=typeof satFactor==="function"?satFactor(realIFA168):1;
+  var nrOper=Math.min(100,Math.round(nrBase*sf));
+  return{nrOper,nrBase,satFactor:Math.round(sf*100)/100,
+    tvcReal:Math.round(tvcReal*100)/100,
+    realIFA:Math.round(realIFA),realIFA168:Math.round(realIFA168),
+    prospIFA:Math.round(prospIFA)};
 }
 function updSATHFromRealData(id){
   var rn=computeRealNR(id);if(!rn)return;
@@ -642,27 +659,28 @@ async function fetchOM(id){
     // Fetch daily (forecast bars) + hourly past 72h (IFA real)
     const [rDaily, rHourly] = await Promise.all([
       fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lon}&daily=precipitation_sum,precipitation_probability_max&past_days=0&forecast_days=3&timezone=America%2FSantiago`),
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lon}&hourly=precipitation&past_days=3&forecast_days=3&timezone=America%2FSantiago`)
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lon}&hourly=precipitation&past_days=7&forecast_days=3&timezone=America%2FSantiago`)
     ]);
     const daily=await rDaily.json();
     const hourly=await rHourly.json();
 
-    // Real IFA: sum of last 72 observed hours
+    // IFA 72h (forzamiento del evento) y IFA 168h (saturación antecedente 7 días)
     const hrPP = hourly.hourly?.precipitation || [];
-    // past_days=3 gives 72 past hours starting at index 0; find current hour index
-    // Total hours = 3 past days (72h) + 3 forecast days (72h) = 144 values
-    // First 72 are past, next 72 are future
-    const past72 = hrPP.slice(0, 72).filter(v=>v!=null);
-    const realIFA = +past72.reduce((a,v)=>a+(v||0),0).toFixed(1);
+    // past_days=7 → 168h pasadas + 72h futuras = 240 valores totales
+    // Primeras 168 son ERA5 observado; siguientes 72 son ECMWF forecast
+    const past168 = hrPP.slice(0, 168).filter(v=>v!=null);
+    const past72  = hrPP.slice(96, 168).filter(v=>v!=null); // últimas 72h de las 168
+    const realIFA    = +past72.reduce((a,v)=>a+(v||0),0).toFixed(1);   // 72h evento
+    const realIFA168 = +past168.reduce((a,v)=>a+(v||0),0).toFixed(1);  // 7 días saturación
 
-    // IFA prospectivo: past 72h + next 72h forecast
-    const fcst72 = hrPP.slice(72, 144).filter(v=>v!=null);
+    // IFA prospectivo: últimas 72h obs + próximas 72h forecast
+    const fcst72 = hrPP.slice(168, 240).filter(v=>v!=null);
     const prospectivoIFA = +(realIFA + fcst72.reduce((a,v)=>a+(v||0),0)).toFixed(1);
 
     fcstData[id]={
       sum:daily.daily?.precipitation_sum||[0,0,0],
       prob:daily.daily?.precipitation_probability_max||[0,0,0],
-      realIFA, prospectivoIFA,
+      realIFA, realIFA168, prospectivoIFA,
       hourlyPP: hrPP,
       ok:true
     };

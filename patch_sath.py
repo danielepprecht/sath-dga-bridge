@@ -1,43 +1,31 @@
 #!/usr/bin/env python3
-"""patch_sath.py - Actualiza SATH_v5.html con NR real + Windy fix"""
+"""patch_sath.py — Aplica actualizaciones SATH_v5.html desde GitHub Actions"""
 import os, sys
 
 SATH = "docs/SATH_v5.html"
 
-def main():
-    if not os.path.exists(SATH):
-        print(f"No encontrado: {SATH}"); return 1
-
-    with open(SATH, encoding="utf-8") as f:
-        html = f.read()
-
-    print(f"Archivo actual: {len(html):,} bytes")
+def patch(html):
     orig = html
+    log = []
 
-    # ── 1. simH=15 por defecto (muestra evento activo al cargar) ──────
     if "simH=0,paused=false" in html:
-        html = html.replace("simH=0,paused=false", "simH=15,paused=true", 1)
-        print("  [+] simH=15")
+        html = html.replace("simH=0,paused=false","simH=72,paused=true",1)
+        log.append("simH=72")
 
-    # ── 2. Key migration (restaura Windy/Claude keys renombradas) ──────
-    OLD_KEY_LINE = "windyKey=sessionStorage.getItem('equipo de alerta_windy_key')||'';"
-    MIGRATION = (
-        OLD_KEY_LINE + "\n"
-        "// Migracion automatica de claves anteriores\n"
-        "['cogrid','sath','COGRID','senapred'].forEach(function(p){\n"
+    OLD_KEY = "windyKey=sessionStorage.getItem('cogrid_windy_key')||'';"
+    NEW_KEY = (OLD_KEY + "\n"
+        "['equipo de alerta','sath','COGRID','senapred'].forEach(function(p){\n"
         "  var ow=sessionStorage.getItem(p+'_windy_key');\n"
-        "  if(ow&&!windyKey){windyKey=ow;sessionStorage.setItem('equipo de alerta_windy_key',ow);}\n"
+        "  if(ow&&!windyKey){windyKey=ow;}\n"
         "  var oc=sessionStorage.getItem(p+'_claude_key');\n"
-        "  if(oc&&!claudeKey){claudeKey=oc;sessionStorage.setItem('equipo de alerta_claude_key',oc);}\n"
-        "});"
-    )
-    if OLD_KEY_LINE in html and "Migracion automatica" not in html:
-        html = html.replace(OLD_KEY_LINE, MIGRATION, 1)
-        print("  [+] Key migration Windy/Claude")
+        "  if(oc&&!claudeKey){claudeKey=oc;}\n"
+        "});")
+    if OLD_KEY in html and "forEach(function" not in html:
+        html = html.replace(OLD_KEY, NEW_KEY, 1)
+        log.append("Key migration")
 
-    # ── 3. NR desde datos reales (scoreNR + computeRealNR + updSATH) ──
-    NR_BLOCK = """
-// === NR REAL desde Open-Meteo + DGA Bridge ===
+    NR_REAL = """
+// === NR REAL + buildRealData desde Open-Meteo ERA5 ===
 const NR_CAL={tvc:{p:0.40,a:1.06,x:3.81},ifa:{p:51.8,a:81.7,x:115.8}};
 const _prevQ={};
 function scoreNR(tvc,ifa){
@@ -49,11 +37,50 @@ function scoreNR(tvc,ifa){
   if(ts>=70&&is_>=70)nr=Math.min(100,nr+0.1*Math.min(ts,is_));
   return{nr:Math.min(100,Math.round(nr)),ts:Math.round(ts),is_:Math.round(is_)};
 }
+function buildRealData(id){
+  var fd=fcstData[id];
+  if(!fd||!fd.ok||!fd.hourlyPP||fd.hourlyPP.length<73)return null;
+  var hrPP=fd.hourlyPP;
+  var curQ=(typeof dgaData!=='undefined'&&dgaData&&dgaData.estaciones&&dgaData.estaciones[id])?dgaData.estaciones[id].q_m3s||0:0;
+  var d=[];
+  for(var h=0;h<=72;h++){
+    var pp=Math.max(0,+(hrPP[h]||0));
+    d.push({h:h,pp:+pp.toFixed(1),q:+curQ.toFixed(1)});
+  }
+  for(var i=0;i<d.length;i++){
+    d[i].dpp=i===0?0:+(d[i].pp-d[i-1].pp).toFixed(2);
+    d[i].tvc=0;
+    var s=Math.max(0,i-71);
+    d[i].ifa=+d.slice(s,i+1).reduce(function(a,x){return a+x.pp;},0).toFixed(1);
+  }
+  for(var j=0;j<d.length;j++){
+    var sc=scoreNR(d[j].tvc,d[j].ifa);
+    d[j].irc=+(sc.nr/100).toFixed(3);
+  }
+  return d;
+}
+function rebuildALLFromRealData(id){
+  var rd=buildRealData(id);
+  if(!rd||rd.length===0)return false;
+  ALL.length=0;
+  rd.forEach(function(x){ALL.push(x);});
+  simH=Math.min(72,ALL.length-1);
+  updUI();updCharts();
+  document.querySelectorAll('span').forEach(function(el){
+    if(el.textContent.trim()==='SIM'){
+      el.textContent='REAL';
+      el.style.background='#dcfce7';
+      el.style.color='#166534';
+      el.title='Datos reales Open-Meteo ERA5';
+    }
+  });
+  return true;
+}
 function computeRealNR(id){
   var fd=fcstData[id];
   if(!fd||!fd.ok)return null;
   var realIFA=fd.realIFA||0,prospIFA=fd.prospectivoIFA||0,tvcReal=0;
-  if(typeof dgaData!=="undefined"&&dgaData&&dgaData.estaciones){
+  if(typeof dgaData!=='undefined'&&dgaData&&dgaData.estaciones){
     var stn=dgaData.estaciones[id];
     if(stn&&stn.q_m3s!==null){
       var prev=_prevQ[id];
@@ -78,7 +105,7 @@ function updSATHFromRealData(id){
   if(bg){bg.className='badge '+a.cls+(nr>=70?' pulse':'');
     bg.innerHTML='<i class="ti '+a.icon+'"></i> '+a.txt;}
   var bnn=document.getElementById('bnn');
-  var info='TVC DGA: '+rn.tvcReal+' m3/s*h | IFA obs: '+rn.realIFA+'mm -> prox: '+rn.prospIFA+'mm';
+  var info='TVC DGA: '+rn.tvcReal+' m3/s | IFA obs: '+rn.realIFA+'mm -> prox: '+rn.prospIFA+'mm';
   if(bnn){
     if(nr>=90){bnn.className='bnn bnn-alarma';bnn.style.display='flex';
       bnn.innerHTML='<strong>ALARMA - NR '+nr+'/100</strong> | '+info;}
@@ -88,36 +115,55 @@ function updSATHFromRealData(id){
       bnn.innerHTML='<strong>PRECAUCION - NR '+nr+'/100</strong> | '+info;}
     else{bnn.style.display='none';bnn.className='bnn';}
   }
-  var ei=document.getElementById('v-ifa');if(ei)ei.textContent=rn.realIFA;
 }
 """
     TARGET = "\nfunction genData(){"
     if "function scoreNR(" not in html and TARGET in html:
-        html = html.replace(TARGET, NR_BLOCK + TARGET, 1)
-        print("  [+] scoreNR / computeRealNR / updSATHFromRealData")
+        html = html.replace(TARGET, NR_REAL + TARGET, 1)
+        log.append("scoreNR + buildRealData + rebuildALLFromRealData")
 
-    # ── 4. Hook: actualizar NR despues de fetchAllOM ───────────────────
-    OLD_HOOK1 = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  renderFc"
-    NEW_HOOK1 = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  updSATHFromRealData(activeStn);\n  renderFc"
-    if OLD_HOOK1 in html and "updSATHFromRealData(activeStn)" not in html:
-        html = html.replace(OLD_HOOK1, NEW_HOOK1)
-        print("  [+] Hook fetchAllOM")
+    OLD1 = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  updSATHFromRealData(activeStn);\n  renderFc"
+    NEW1 = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  rebuildALLFromRealData(activeStn);\n  updSATHFromRealData(activeStn);\n  renderFc"
+    OLD1B = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  renderFc"
+    NEW1B = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  rebuildALLFromRealData(activeStn);\n  updSATHFromRealData(activeStn);\n  renderFc"
+    if "rebuildALLFromRealData" not in html:
+        if OLD1 in html:
+            html = html.replace(OLD1, NEW1)
+            log.append("Hook fetchAllOM")
+        elif OLD1B in html:
+            html = html.replace(OLD1B, NEW1B)
+            log.append("Hook fetchAllOM (alt)")
 
-    # ── 5. Hook: actualizar NR al cambiar estacion ─────────────────────
-    OLD_HOOK2 = "updRealIFA();\n  fetchFloodForecast(id);\n  fetchDGABridge();"
-    NEW_HOOK2 = "updRealIFA();\n  updSATHFromRealData(id);\n  fetchFloodForecast(id);\n  fetchDGABridge();"
-    if OLD_HOOK2 in html and "updSATHFromRealData(id)" not in html:
-        html = html.replace(OLD_HOOK2, NEW_HOOK2)
-        print("  [+] Hook cambio estacion")
+    OLD2 = "updRealIFA();\n  updSATHFromRealData(id);\n  fetchFloodForecast"
+    NEW2 = "updRealIFA();\n  rebuildALLFromRealData(id);\n  updSATHFromRealData(id);\n  fetchFloodForecast"
+    OLD2B = "updRealIFA();\n  fetchFloodForecast"
+    NEW2B = "updRealIFA();\n  rebuildALLFromRealData(id);\n  updSATHFromRealData(id);\n  fetchFloodForecast"
+    if "rebuildALLFromRealData(id)" not in html:
+        if OLD2 in html:
+            html = html.replace(OLD2, NEW2)
+            log.append("Hook estacion")
+        elif OLD2B in html:
+            html = html.replace(OLD2B, NEW2B)
+            log.append("Hook estacion (alt)")
 
-    if html != orig:
-        with open(SATH, "w", encoding="utf-8") as f:
-            f.write(html)
-        print(f"  Guardado: {len(html):,} bytes")
+    return html, log, html != orig
+
+def main():
+    if not os.path.exists(SATH):
+        print(f"ERROR: {SATH} no encontrado"); return 1
+    with open(SATH, encoding="utf-8") as f:
+        html = f.read()
+    print(f"Archivo: {len(html):,} bytes")
+    html_new, log, changed = patch(html)
+    if changed:
+        with open(SATH,"w",encoding="utf-8") as f:
+            f.write(html_new)
+        print(f"Guardado: {len(html_new):,} bytes")
+        for l in log: print(f"  [+] {l}")
         print("SATH_v5.html actualizado correctamente")
     else:
-        print("Sin cambios — ya estaba actualizado")
+        print("Sin cambios necesarios - ya estaba actualizado")
     return 0
 
-if __name__ == "__main__":
+if __name__=="__main__":
     sys.exit(main())

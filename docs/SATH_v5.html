@@ -461,6 +461,12 @@ const fcstData={};
 let windyData={};
 let claudeKey=sessionStorage.getItem('cogrid_claude_key')||'';
 let windyKey=sessionStorage.getItem('cogrid_windy_key')||'';
+['equipo de alerta','sath','COGRID','senapred'].forEach(function(p){
+  var ow=sessionStorage.getItem(p+'_windy_key');
+  if(ow&&!windyKey){windyKey=ow;}
+  var oc=sessionStorage.getItem(p+'_claude_key');
+  if(oc&&!claudeKey){claudeKey=oc;}
+});
 let activeStn='antihue',simH=15,paused=true,speed=2,iv=null,prevIRC=0;
 
 // ═══════════════════════════════════════════════════
@@ -486,6 +492,8 @@ function selectStn(id){
   document.querySelectorAll('.stn-tab').forEach(t=>t.classList.toggle('active',t.dataset.stn===id));
   renderFcstSelected(id);
   updRealIFA();
+  rebuildALLFromRealData(id);
+  updSATHFromRealData(id);
   fetchFloodForecast(id);
   fetchDGABridge();
   if(windyKey)fetchWindy(id);
@@ -617,10 +625,13 @@ async function fetchOM(id){
 }
 async function fetchAllOM(){
   await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));
+  rebuildALLFromRealData(activeStn);
   updSATHFromRealData(activeStn);
   renderFcstSelected(activeStn);
   renderGradient();
   updRealIFA();
+  rebuildALLFromRealData(id);
+  updSATHFromRealData(id);
   fetchFloodForecast(activeStn);
   document.getElementById('fcst-src').textContent=`Open-Meteo ECMWF 9km + GloFAS · 12 estaciones · ${new Date().toLocaleTimeString('es-CL')}`;
 }

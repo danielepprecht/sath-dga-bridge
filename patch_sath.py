@@ -118,7 +118,7 @@ function updSATHFromRealData(id){
 }
 """
     TARGET = "\nfunction genData(){"
-    if "function scoreNR(" not in html and TARGET in html:
+    if "function buildRealData(" not in html and TARGET in html:
         html = html.replace(TARGET, NR_REAL + TARGET, 1)
         log.append("scoreNR + buildRealData + rebuildALLFromRealData")
 

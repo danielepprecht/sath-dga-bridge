@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """patch_sath.py — Aplica y corrige SATH_v5.html — versión limpia"""
 import os, sys, re
+from collections import Counter
  
 SATH = "docs/SATH_v5.html"
  

@@ -542,59 +542,65 @@ function buildRealData(id){
   var fd=fcstData[id];
   if(!fd||!fd.ok||!fd.hourlyPP||fd.hourlyPP.length<73)return null;
   var hrPP=fd.hourlyPP;
-  var curQ=(typeof dgaData!=='undefined'&&dgaData&&dgaData.estaciones&&dgaData.estaciones[id])?dgaData.estaciones[id].q_m3s||0:0;
 
-  // Retardo hidrológico por cuenca (horas) — calibrado con datos DGA Los Ríos
+  // Retardo hidrológico por cuenca (horas) — Los Ríos calibrado CR2/DGA
   var LAG_H={antihue:36,rinihue:48,mamalona:24,valdivia:12,corral:8,
              lacpicada:12,laslomas:16,tegualda:8,panguipulli:24,
              pilmaiquen:48,launion:20,riobueno:72};
-  var T=LAG_H[id]||24;  // horas de tiempo de respuesta
+  var T=LAG_H[id]||24;
 
-  // Offset: con past_days=7 (240 valores) usamos hrPP[96..168]
-  var ppOffset=hrPP.length>=240?96:0;
+  // Offset: past_days=7 → 240 valores (168 past + 72 future)
+  //         past_days=3 → 144 valores (72 past + 72 future)
+  var is7d=hrPP.length>=200;
+  var ppOffset=is7d?96:0;          // Con 7d: usar últimas 72h de las 168
   var pp73=[];
   for(var k=0;k<=72;k++) pp73.push(Math.max(0,+(hrPP[ppOffset+k]||0)));
 
-  // ── Q sintético por convolución de reservorio lineal ──────────────────
-  // Q(t) = baseQ + K × Σ PP(τ) × exp(-(t-τ)/T)
-  // K normalizado para que el rango de Q sea coherente con la cuenca
-  var K=0.08;  // mm/h → m³/s·h (escala regional Los Ríos)
-  var qSyn=[];
+  // ── Caudal base: DGA Bridge o Q mediana calibrada CR2 ─────────────────
+  var curQ=0;
+  if(typeof dgaData!=='undefined'&&dgaData&&dgaData.estaciones&&dgaData.estaciones[id])
+    curQ=dgaData.estaciones[id].q_m3s||0;
+  // Fallback: Q mediana por cuenca desde calibración CR2/DGA
+  var Q_REF={antihue:519,rinihue:294,mamalona:46,valdivia:46,corral:10,
+             lacpicada:30,laslomas:15,tegualda:4,panguipulli:30,
+             pilmaiquen:153,launion:40,riobueno:342};
+  var baseQ=curQ>1?curQ:(Q_REF[id]||50);
+
+  // ── Convolución reservorio lineal PP→Q ────────────────────────────────
+  // Q(t) = baseQ + baseQ × K_rel × Σ pp(τ) × exp(-(t-τ)/T) / maxConv
+  // K_rel=0.8 → el pico de Q puede subir hasta 80% sobre baseQ con lluvia máx
+  var conv=[];
   for(var t=0;t<=72;t++){
     var acc=0;
     for(var tau=0;tau<=t;tau++){
       acc+=pp73[tau]*Math.exp(-(t-tau)/T);
     }
-    qSyn.push(curQ+acc*K);
+    conv.push(acc);
   }
-  // Normalizar para que el Q de llegada coincida con curQ observado
-  var q0Syn=qSyn[72]||curQ;
-  var scale=q0Syn>0?curQ/q0Syn:1;
-  if(scale>3||scale<0.1)scale=1;  // evitar escala extrema sin datos DGA
-  qSyn=qSyn.map(function(q){return Math.max(0,+(q*scale).toFixed(2));});
+  var maxConv=Math.max.apply(null,conv)||1;  // normalizar
+  var K_rel=0.80;  // respuesta máxima: 80% sobre baseQ en evento extremo
 
   // ── Construir array de datos ──────────────────────────────────────────
   var d=[];
   for(var h=0;h<=72;h++){
-    d.push({h:h,pp:+pp73[h].toFixed(1),q:qSyn[h]});
+    var pp=pp73[h];
+    var qSyn=+(baseQ*(1+K_rel*conv[h]/maxConv)).toFixed(2);
+    d.push({h:h,pp:+pp.toFixed(1),q:qSyn});
   }
 
-  // Derivadas
+  // ── Derivadas ─────────────────────────────────────────────────────────
   for(var i=0;i<d.length;i++){
-    // dP/dt (primera derivada PP, mm/h)
-    d[i].dpp=i===0?0:+(d[i].pp-d[i-1].pp).toFixed(2);
-    // TVC = dQ/dt (primera derivada Q, m³/s·h)
-    d[i].tvc=i===0?0:+(d[i].q-d[i-1].q).toFixed(3);
-    // IFA: integral 72h
+    d[i].dpp=i===0?0:+(d[i].pp-d[i-1].pp).toFixed(2);        // dP/dt mm/h
+    d[i].tvc=i===0?0:+(d[i].q-d[i-1].q).toFixed(3);          // dQ/dt m³/s·h
     var s=Math.max(0,i-71);
     d[i].ifa=+d.slice(s,i+1).reduce(function(a,x){return a+x.pp;},0).toFixed(1);
   }
-  // APC = d²P/dt² (segunda derivada PP, mm/h²) — CORRECCIÓN
+  // APC = d²P/dt² (segunda derivada — aceleración de la lluvia mm/h²)
   for(var i=0;i<d.length;i++){
     d[i].apc=i<2?0:+(d[i].dpp-d[i-1].dpp).toFixed(3);
   }
 
-  // NR con TVC real + IFA + APC
+  // ── NR con TVC real + IFA + APC ──────────────────────────────────────
   for(var j=0;j<d.length;j++){
     var sc=scoreNR(Math.max(0,d[j].tvc),d[j].ifa,d[j].apc);
     d[j].irc=+(sc.nr/100).toFixed(3);
@@ -931,6 +937,10 @@ async function connectClaude(){
       if(r.status===400){
         lastError=data?.error?.message||`Modelo ${model} rechazado`;
         lastErrorType=data?.error?.type||'unknown';
+        if(lastError.includes('credit')||lastError.includes('balance')){
+          const el=document.getElementById('ai-out');
+          if(el)el.innerHTML='<span style="color:#d97706">⚠ Créditos Claude agotados. Recarga en <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></span>';
+        }
         console.warn(`Modelo ${model} rechazado (400):`,lastError,'tipo:',lastErrorType);
         // If it's a credit/billing error, stop immediately — won't fix by trying other models
         if(lastErrorType==='invalid_request_error' && /credit|billing|balance|payment/i.test(lastError)){
@@ -1140,6 +1150,9 @@ async function analyze(){
     document.getElementById('ai-out').innerHTML='<span style="color:#991b1b">⚠ Conecta tu API key de Anthropic primero.</span>';
     return;
   }
+  // Limpiar error previo de créditos
+  const aiOut=document.getElementById('ai-out');
+  if(aiOut&&aiOut.innerHTML.includes('Créditos'))aiOut.innerHTML='';
   const cur=ALL[simH];
   const stnId=document.getElementById('sel-stn').value;
   const s=STNS[stnId];

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""patch_sath.py — Aplica actualizaciones SATH_v5.html desde GitHub Actions"""
+"""patch_sath.py — Aplica y corrige actualizaciones SATH_v5.html"""
 import os, sys
 
 SATH = "docs/SATH_v5.html"
@@ -8,22 +8,51 @@ def patch(html):
     orig = html
     log = []
 
+    # ── FIX CRÍTICO: eliminar líneas con 'id' no definido en fetchAllOM ──
+    # El parche anterior inyectó rebuildALLFromRealData(id) dentro de
+    # fetchAllOM() donde 'id' no está definido → ReferenceError → todo rompe
+    BAD1 = ("  updRealIFA();\n"
+            "  rebuildALLFromRealData(id);\n"
+            "  updSATHFromRealData(id);\n"
+            "  fetchFloodForecast(activeStn);")
+    OK1  = ("  updRealIFA();\n"
+            "  fetchFloodForecast(activeStn);")
+    if BAD1 in html:
+        html = html.replace(BAD1, OK1, 1)
+        log.append("FIX CRÍTICO: eliminadas líneas 'id' no definido en fetchAllOM")
+
+    # Variante 2 del mismo bug
+    BAD2 = ("  rebuildALLFromRealData(id);\n"
+            "  updSATHFromRealData(id);\n"
+            "  fetchFloodForecast(activeStn);")
+    OK2  = "  fetchFloodForecast(activeStn);"
+    if BAD2 in html:
+        html = html.replace(BAD2, OK2, 1)
+        log.append("FIX CRÍTICO v2: eliminadas líneas 'id' no definido")
+
+    # ── simH=72 por defecto ──────────────────────────────────────────────
     if "simH=0,paused=false" in html:
         html = html.replace("simH=0,paused=false","simH=72,paused=true",1)
         log.append("simH=72")
 
-    OLD_KEY = "windyKey=sessionStorage.getItem('cogrid_windy_key')||'';"
-    NEW_KEY = (OLD_KEY + "\n"
-        "['equipo de alerta','sath','COGRID','senapred'].forEach(function(p){\n"
-        "  var ow=sessionStorage.getItem(p+'_windy_key');\n"
-        "  if(ow&&!windyKey){windyKey=ow;}\n"
-        "  var oc=sessionStorage.getItem(p+'_claude_key');\n"
-        "  if(oc&&!claudeKey){claudeKey=oc;}\n"
-        "});")
-    if OLD_KEY in html and "forEach(function" not in html:
-        html = html.replace(OLD_KEY, NEW_KEY, 1)
-        log.append("Key migration")
+    # ── Key migration Windy/Claude ───────────────────────────────────────
+    for old_key in [
+        "windyKey=sessionStorage.getItem('cogrid_windy_key')||'';",
+        "windyKey=sessionStorage.getItem('equipo de alerta_windy_key')||'';"
+    ]:
+        if old_key in html and "Migracion automatica" not in html:
+            migration = (old_key + "\n"
+                "['equipo de alerta','sath','COGRID','senapred'].forEach(function(p){\n"
+                "  var ow=sessionStorage.getItem(p+'_windy_key');\n"
+                "  if(ow&&!windyKey){windyKey=ow;}\n"
+                "  var oc=sessionStorage.getItem(p+'_claude_key');\n"
+                "  if(oc&&!claudeKey){claudeKey=oc;}\n"
+                "});\n// Migracion automatica")
+            html = html.replace(old_key, migration, 1)
+            log.append("Key migration Windy/Claude")
+            break
 
+    # ── NR real: scoreNR + buildRealData + rebuildALLFromRealData ────────
     NR_REAL = """
 // === NR REAL + buildRealData desde Open-Meteo ERA5 ===
 const NR_CAL={tvc:{p:0.40,a:1.06,x:3.81},ifa:{p:51.8,a:81.7,x:115.8}};
@@ -71,7 +100,6 @@ function rebuildALLFromRealData(id){
       el.textContent='REAL';
       el.style.background='#dcfce7';
       el.style.color='#166534';
-      el.title='Datos reales Open-Meteo ERA5';
     }
   });
   return true;
@@ -89,8 +117,7 @@ function computeRealNR(id){
     }
   }
   var nrO=scoreNR(tvcReal,realIFA),nrP=scoreNR(tvcReal,prospIFA);
-  return{nrOper:Math.max(nrO.nr,nrP.nr),ts:Math.max(nrO.ts,nrP.ts),
-    is_:Math.max(nrO.is_,nrP.is_),tvcReal:Math.round(tvcReal*100)/100,
+  return{nrOper:Math.max(nrO.nr,nrP.nr),tvcReal:Math.round(tvcReal*100)/100,
     realIFA:Math.round(realIFA),prospIFA:Math.round(prospIFA)};
 }
 function updSATHFromRealData(id){
@@ -100,19 +127,16 @@ function updSATHFromRealData(id){
   if(nf){nf.style.width=Math.min(100,nr)+'%';
     nf.style.background=nr>=90?'#dc2626':nr>=80?'#ea580c':nr>=70?'#d97706':'#16a34a';}
   var vi=document.getElementById('v-irc');if(vi)vi.textContent=nr;
-  updSATHSemaphore(nr);
-  var a=alrt(nr/100),bg=document.getElementById('badge');
-  if(bg){bg.className='badge '+a.cls+(nr>=70?' pulse':'');
-    bg.innerHTML='<i class="ti '+a.icon+'"></i> '+a.txt;}
+  if(typeof updSATHSemaphore==='function')updSATHSemaphore(nr);
   var bnn=document.getElementById('bnn');
-  var info='TVC DGA: '+rn.tvcReal+' m3/s | IFA obs: '+rn.realIFA+'mm -> prox: '+rn.prospIFA+'mm';
+  var info='IFA obs: '+rn.realIFA+'mm -> prox: '+rn.prospIFA+'mm | TVC DGA: '+rn.tvcReal+' m3/s';
   if(bnn){
     if(nr>=90){bnn.className='bnn bnn-alarma';bnn.style.display='flex';
-      bnn.innerHTML='<strong>ALARMA - NR '+nr+'/100</strong> | '+info;}
+      bnn.innerHTML='<strong>ALARMA NR '+nr+'/100</strong> | '+info;}
     else if(nr>=80){bnn.className='bnn bnn-alerta';bnn.style.display='flex';
-      bnn.innerHTML='<strong>ALERTA - NR '+nr+'/100</strong> | '+info;}
+      bnn.innerHTML='<strong>ALERTA NR '+nr+'/100</strong> | '+info;}
     else if(nr>=70){bnn.className='bnn bnn-precaucion';bnn.style.display='flex';
-      bnn.innerHTML='<strong>PRECAUCION - NR '+nr+'/100</strong> | '+info;}
+      bnn.innerHTML='<strong>PRECAUCION NR '+nr+'/100</strong> | '+info;}
     else{bnn.style.display='none';bnn.className='bnn';}
   }
 }
@@ -120,31 +144,32 @@ function updSATHFromRealData(id){
     TARGET = "\nfunction genData(){"
     if "function buildRealData(" not in html and TARGET in html:
         html = html.replace(TARGET, NR_REAL + TARGET, 1)
-        log.append("scoreNR + buildRealData + rebuildALLFromRealData")
+        log.append("scoreNR + buildRealData + rebuildALLFromRealData + NR real")
 
-    OLD1 = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  updSATHFromRealData(activeStn);\n  renderFc"
-    NEW1 = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  rebuildALLFromRealData(activeStn);\n  updSATHFromRealData(activeStn);\n  renderFc"
-    OLD1B = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  renderFc"
-    NEW1B = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  rebuildALLFromRealData(activeStn);\n  updSATHFromRealData(activeStn);\n  renderFc"
-    if "rebuildALLFromRealData" not in html:
-        if OLD1 in html:
-            html = html.replace(OLD1, NEW1)
+    # ── Hook fetchAllOM: rebuild desde datos reales ──────────────────────
+    # Solo agrega rebuildALLFromRealData(activeStn) — NO 'id' aquí
+    for old_hook, new_hook in [
+        ("await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  rebuildALLFromRealData(activeStn);\n  updSATHFromRealData(activeStn);\n  renderFc",
+         None),  # ya correcto
+        ("await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  renderFc",
+         "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  rebuildALLFromRealData(activeStn);\n  updSATHFromRealData(activeStn);\n  renderFc"),
+    ]:
+        if new_hook and old_hook in html and "rebuildALLFromRealData(activeStn)" not in html:
+            html = html.replace(old_hook, new_hook)
             log.append("Hook fetchAllOM")
-        elif OLD1B in html:
-            html = html.replace(OLD1B, NEW1B)
-            log.append("Hook fetchAllOM (alt)")
+            break
 
-    OLD2 = "updRealIFA();\n  updSATHFromRealData(id);\n  fetchFloodForecast"
-    NEW2 = "updRealIFA();\n  rebuildALLFromRealData(id);\n  updSATHFromRealData(id);\n  fetchFloodForecast"
-    OLD2B = "updRealIFA();\n  fetchFloodForecast"
-    NEW2B = "updRealIFA();\n  rebuildALLFromRealData(id);\n  updSATHFromRealData(id);\n  fetchFloodForecast"
-    if "rebuildALLFromRealData(id)" not in html:
-        if OLD2 in html:
-            html = html.replace(OLD2, NEW2)
-            log.append("Hook estacion")
-        elif OLD2B in html:
-            html = html.replace(OLD2B, NEW2B)
-            log.append("Hook estacion (alt)")
+    # ── Hook cambio de estación (usa variable 'id' que SÍ está definida) ─
+    for old_h, new_h in [
+        ("updRealIFA();\n  updSATHFromRealData(id);\n  fetchFloodForecast",
+         "updRealIFA();\n  rebuildALLFromRealData(id);\n  updSATHFromRealData(id);\n  fetchFloodForecast"),
+        ("updRealIFA();\n  fetchFloodForecast",
+         "updRealIFA();\n  rebuildALLFromRealData(id);\n  updSATHFromRealData(id);\n  fetchFloodForecast"),
+    ]:
+        if old_h in html and "rebuildALLFromRealData(id)" not in html:
+            html = html.replace(old_h, new_h)
+            log.append("Hook cambio estacion")
+            break
 
     return html, log, html != orig
 
@@ -155,14 +180,25 @@ def main():
         html = f.read()
     print(f"Archivo: {len(html):,} bytes")
     html_new, log, changed = patch(html)
+
+    import re
+    scripts = re.findall(r'<script>(.*?)</script>', html_new, re.DOTALL)
+    js = scripts[0] if scripts else ''
+    op = js.count('{'); cl = js.count('}')
+    balanced = op == cl
+    print(f"JS balanceado: {balanced} ({{ {op}  }} {cl})")
+
+    if not balanced:
+        print("ERROR: JS no balanceado — abortando")
+        return 1
+
     if changed:
         with open(SATH,"w",encoding="utf-8") as f:
             f.write(html_new)
         print(f"Guardado: {len(html_new):,} bytes")
         for l in log: print(f"  [+] {l}")
-        print("SATH_v5.html actualizado correctamente")
     else:
-        print("Sin cambios necesarios - ya estaba actualizado")
+        print("Sin cambios necesarios")
     return 0
 
 if __name__=="__main__":

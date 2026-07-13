@@ -1,14 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-13T20:16:44.893476+00:00",
-    "timestamp_chile": "2026-07-13T16:16:44.893476-04:00",
+    "timestamp_utc": "2026-07-13T21:53:00.512604+00:00",
+    "timestamp_chile": "2026-07-13T17:53:00.512604-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "fetch_ok": true,
     "n_estaciones_ok": 8,
     "n_estaciones": 12,
     "n_raw_registros": 1024,
-    "prox_actualizacion": "2026-07-13T21:16:44.893476+00:00"
+    "prox_actualizacion": "2026-07-13T22:53:00.512604+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -115,7 +115,7 @@
       "cuenca": "San Pedro",
       "lat": -39.79,
       "lon": -72.43,
-      "q_m3s": 0.0,
+      "q_m3s": 0.2,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,

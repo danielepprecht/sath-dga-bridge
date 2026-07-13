@@ -192,7 +192,8 @@ def patch(html):
 def main():
     from collections import Counter
     if not os.path.exists(SATH):
-        print(f"ERROR: {SATH} no encontrado"); return 1
+        print(f"AVISO: {SATH} no encontrado — omitiendo parche (subir el archivo primero)")
+        return 0
     with open(SATH, encoding="utf-8") as f:
         html = f.read()
     print(f"Archivo: {len(html):,} bytes")

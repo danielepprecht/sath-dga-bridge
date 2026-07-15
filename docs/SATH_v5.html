@@ -566,25 +566,21 @@ function buildRealData(id){
              pilmaiquen:153,launion:40,riobueno:342};
   var baseQ=curQ>1?curQ:(Q_REF[id]||50);
 
-  // ── Convolución reservorio lineal PP→Q ────────────────────────────────
-  // Q(t) = baseQ + baseQ × K_rel × Σ pp(τ) × exp(-(t-τ)/T) / maxConv
-  // K_rel=0.8 → el pico de Q puede subir hasta 80% sobre baseQ con lluvia máx
-  var conv=[];
-  for(var t=0;t<=72;t++){
-    var acc=0;
-    for(var tau=0;tau<=t;tau++){
-      acc+=pp73[tau]*Math.exp(-(t-tau)/T);
-    }
-    conv.push(acc);
-  }
-  var maxConv=Math.max.apply(null,conv)||1;  // normalizar
-  var K_rel=0.80;  // respuesta máxima: 80% sobre baseQ en evento extremo
+  // ── Reservorio lineal RECURSIVO: PP→Q con crecida y vaciado ─────────────
+  // response[t] = response[t-1]×α + pp[t]    (α = exp(-1/T))
+  // Cuando llueve: response sube. Cuando para: response decae. TVC ≠ 0.
+  var alpha=Math.exp(-1/T);
+  var resp=[];var r=0;
+  for(var t=0;t<=72;t++){r=r*alpha+pp73[t];resp.push(r);}
+  // Normalizar: Q varía entre baseQ y baseQ×(1+K_rel)
+  var maxResp=Math.max.apply(null,resp)||1;
+  var K_rel=0.60;
 
   // ── Construir array de datos ──────────────────────────────────────────
   var d=[];
   for(var h=0;h<=72;h++){
     var pp=pp73[h];
-    var qSyn=+(baseQ*(1+K_rel*conv[h]/maxConv)).toFixed(2);
+    var qSyn=+(baseQ*(1+K_rel*resp[h]/maxResp)).toFixed(2);
     d.push({h:h,pp:+pp.toFixed(1),q:qSyn});
   }
 
@@ -613,6 +609,11 @@ function rebuildALLFromRealData(id){
   ALL.length=0;
   rd.forEach(function(x){ALL.push(x);});
   simH=Math.min(72,ALL.length-1);
+  // Detener la animación: los datos reales no deben ser sobreescritos por la sim
+  paused=true;
+  clearInterval(iv);iv=null;
+  const btn=document.getElementById('btn-play');
+  if(btn)btn.innerHTML='<i class="ti ti-player-play"></i>';
   updUI();updCharts();
   document.querySelectorAll('span').forEach(function(el){
     if(el.textContent.trim()==='SIM'){
@@ -1043,24 +1044,54 @@ function initCharts(){
     {label:'Q m³/s',data:w.map(r=>r.q),yAxisID:'y1',borderColor:'#1565c0',backgroundColor:'rgba(21,101,192,.1)',borderWidth:2,pointRadius:0,fill:true,tension:.4},
     {label:'TVC',data:w.map(r=>r.tvc),yAxisID:'y2',borderColor:'#d97706',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,borderDash:[5,3],tension:.3},
   ]},options:{...base,scales:{...base.scales,
-    y1:{type:'linear',position:'left',min:0,max:1200,ticks:{color:gc.text,font:{size:9},maxTicksLimit:5},grid:{color:gc.grid}},
-    y2:{type:'linear',position:'right',min:-20,max:120,ticks:{color:gc.text,font:{size:9},maxTicksLimit:5},grid:{drawOnChartArea:false}},
+    y1:{type:'linear',position:'left',suggestedMin:0,ticks:{color:gc.text,font:{size:9},maxTicksLimit:5},grid:{color:gc.grid}},
+    y2:{type:'linear',position:'right',suggestedMin:-5,suggestedMax:5,ticks:{color:gc.text,font:{size:9},maxTicksLimit:5},grid:{drawOnChartArea:false}},
     x:{...base.scales.x,ticks:{color:gc.text,font:{size:9},maxTicksLimit:8,callback:(v,i)=>i%8===0?w[i]?.h+'h':''}},
   }}});
   ch2=new Chart(document.getElementById('ch2'),{type:'line',data:{labels:xl,datasets:[
     {label:'PP',data:w.map(r=>r.pp),yAxisID:'y1',borderColor:'#0891b2',backgroundColor:'rgba(8,145,178,.12)',borderWidth:2,pointRadius:0,fill:true,tension:.4},
     {label:'IFA',data:w.map(r=>r.ifa),yAxisID:'y2',borderColor:'#7c3aed',backgroundColor:'transparent',borderWidth:1.8,pointRadius:0,borderDash:[5,3],tension:.4},
   ]},options:{...base,scales:{...base.scales,
-    y1:{type:'linear',position:'left',min:0,max:28,ticks:{color:gc.text,font:{size:9},maxTicksLimit:5},grid:{color:gc.grid}},
-    y2:{type:'linear',position:'right',min:0,max:220,ticks:{color:gc.text,font:{size:9},maxTicksLimit:5},grid:{drawOnChartArea:false}},
+    y1:{type:'linear',position:'left',suggestedMin:0,ticks:{color:gc.text,font:{size:9},maxTicksLimit:5},grid:{color:gc.grid}},
+    y2:{type:'linear',position:'right',suggestedMin:0,ticks:{color:gc.text,font:{size:9},maxTicksLimit:5},grid:{drawOnChartArea:false}},
     x:{...base.scales.x,ticks:{color:gc.text,font:{size:9},maxTicksLimit:8,callback:(v,i)=>i%8===0?w[i]?.h+'h':''}},
   }}});
 }
 
 function updCharts(){
-  const w=getWin(simH);const xl=w.map(r=>`${r.h}h`);const cb=(_,i)=>i%8===0?w[i]?.h+'h':'';
-  ch1.data.labels=xl;ch1.data.datasets[0].data=w.map(r=>r.q);ch1.data.datasets[1].data=w.map(r=>r.tvc);ch1.options.scales.x.ticks.callback=cb;ch1.update('none');
-  ch2.data.labels=xl;ch2.data.datasets[0].data=w.map(r=>r.pp);ch2.data.datasets[1].data=w.map(r=>r.ifa);ch2.options.scales.x.ticks.callback=cb;ch2.update('none');
+  const w=getWin(simH);
+  const xl=w.map(r=>`${r.h}h`);
+  const cb=(_,i)=>i%8===0?w[i]?.h+'h':'';
+  // ── Auto-scale: adapta ejes a los datos actuales ──────────────────────
+  const qs  = w.map(r=>r.q||0);
+  const tvcs= w.map(r=>r.tvc||0);
+  const pps = w.map(r=>r.pp||0);
+  const ifas= w.map(r=>r.ifa||0);
+  const qMin=Math.max(0,Math.min(...qs)*0.80);
+  const qMax=Math.max(...qs)*1.20||10;
+  const tvcLim=Math.max(Math.abs(Math.min(...tvcs)),Math.abs(Math.max(...tvcs)),0.5)*1.3;
+  const ppMax=Math.max(Math.max(...pps)*1.30,0.5);
+  const ifaMax=Math.max(Math.max(...ifas)*1.20,10);
+  // Ch1: Q y TVC
+  ch1.data.labels=xl;
+  ch1.data.datasets[0].data=qs;
+  ch1.data.datasets[1].data=tvcs;
+  ch1.options.scales.y1.min=qMin;
+  ch1.options.scales.y1.max=qMax;
+  ch1.options.scales.y2.min=-tvcLim;
+  ch1.options.scales.y2.max=tvcLim;
+  ch1.options.scales.x.ticks.callback=cb;
+  ch1.update('none');
+  // Ch2: PP y IFA
+  ch2.data.labels=xl;
+  ch2.data.datasets[0].data=pps;
+  ch2.data.datasets[1].data=ifas;
+  ch2.options.scales.y1.min=0;
+  ch2.options.scales.y1.max=ppMax;
+  ch2.options.scales.y2.min=0;
+  ch2.options.scales.y2.max=ifaMax;
+  ch2.options.scales.x.ticks.callback=cb;
+  ch2.update('none');
 }
 
 // ═══════════════════════════════════════════════════

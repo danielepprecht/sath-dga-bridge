@@ -1,14 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-15T18:09:20.067135+00:00",
-    "timestamp_chile": "2026-07-15T14:09:20.067135-04:00",
+    "timestamp_utc": "2026-07-15T20:11:05.301874+00:00",
+    "timestamp_chile": "2026-07-15T16:11:05.301874-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "fetch_ok": true,
     "n_estaciones_ok": 8,
     "n_estaciones": 12,
     "n_raw_registros": 1024,
-    "prox_actualizacion": "2026-07-15T19:09:20.067135+00:00"
+    "prox_actualizacion": "2026-07-15T21:11:05.301874+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -45,7 +45,7 @@
       "cuenca": "Cruces",
       "lat": -39.82,
       "lon": -73.27,
-      "q_m3s": 0.0,
+      "q_m3s": 0.1,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -73,7 +73,7 @@
       "cuenca": "Calle-Calle",
       "lat": -39.64,
       "lon": -72.33,
-      "q_m3s": 0.0,
+      "q_m3s": 0.5,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -87,7 +87,7 @@
       "cuenca": "Costero",
       "lat": -39.88,
       "lon": -73.43,
-      "q_m3s": 0.0,
+      "q_m3s": 0.6,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -101,7 +101,7 @@
       "cuenca": "San Pedro",
       "lat": -39.58,
       "lon": -72.18,
-      "q_m3s": 0.1,
+      "q_m3s": 1.0,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -115,7 +115,7 @@
       "cuenca": "San Pedro",
       "lat": -39.79,
       "lon": -72.43,
-      "q_m3s": 1.7,
+      "q_m3s": 0.4,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,

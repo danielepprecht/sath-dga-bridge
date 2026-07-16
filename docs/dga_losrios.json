@@ -1,14 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-16T11:02:13.646028+00:00",
-    "timestamp_chile": "2026-07-16T07:02:13.646028-04:00",
+    "timestamp_utc": "2026-07-16T12:24:55.873318+00:00",
+    "timestamp_chile": "2026-07-16T08:24:55.873318-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "fetch_ok": true,
     "n_estaciones_ok": 5,
     "n_estaciones": 12,
     "n_raw_registros": 1024,
-    "prox_actualizacion": "2026-07-16T12:02:13.646028+00:00"
+    "prox_actualizacion": "2026-07-16T13:24:55.873318+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -31,7 +31,7 @@
       "cuenca": "Bueno",
       "lat": -40.29,
       "lon": -73.09,
-      "q_m3s": 1.8,
+      "q_m3s": 1.0,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -59,7 +59,7 @@
       "cuenca": "Bueno",
       "lat": -40.69,
       "lon": -72.97,
-      "q_m3s": 1.0,
+      "q_m3s": 0.5,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -73,7 +73,7 @@
       "cuenca": "Calle-Calle",
       "lat": -39.64,
       "lon": -72.33,
-      "q_m3s": 0.3,
+      "q_m3s": 0.7,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -87,7 +87,7 @@
       "cuenca": "Costero",
       "lat": -39.88,
       "lon": -73.43,
-      "q_m3s": 2.6,
+      "q_m3s": 1.2,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,

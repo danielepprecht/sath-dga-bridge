@@ -1,14 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-15T23:05:10.842904+00:00",
-    "timestamp_chile": "2026-07-15T19:05:10.842904-04:00",
+    "timestamp_utc": "2026-07-16T02:43:55.154643+00:00",
+    "timestamp_chile": "2026-07-15T22:43:55.154643-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "fetch_ok": true,
-    "n_estaciones_ok": 4,
+    "n_estaciones_ok": 5,
     "n_estaciones": 12,
     "n_raw_registros": 1024,
-    "prox_actualizacion": "2026-07-16T00:05:10.842904+00:00"
+    "prox_actualizacion": "2026-07-16T03:43:55.154643+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -31,13 +31,13 @@
       "cuenca": "Bueno",
       "lat": -40.29,
       "lon": -73.09,
-      "q_m3s": null,
+      "q_m3s": 0.2,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "RIO LLOLLELHUE EN LA UNION",
       "es_proxy": false,
-      "estado": "sin_valor"
+      "estado": "ok"
     },
     "lacpicada": {
       "codigo": "10133000",
@@ -59,7 +59,7 @@
       "cuenca": "Bueno",
       "lat": -40.69,
       "lon": -72.97,
-      "q_m3s": 0.6,
+      "q_m3s": 0.4,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -73,7 +73,7 @@
       "cuenca": "Calle-Calle",
       "lat": -39.64,
       "lon": -72.33,
-      "q_m3s": 0.5,
+      "q_m3s": 1.5,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -87,7 +87,7 @@
       "cuenca": "Costero",
       "lat": -39.88,
       "lon": -73.43,
-      "q_m3s": 0.7,
+      "q_m3s": 1.5,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -115,7 +115,7 @@
       "cuenca": "San Pedro",
       "lat": -39.79,
       "lon": -72.43,
-      "q_m3s": 1.1,
+      "q_m3s": 1.4,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,

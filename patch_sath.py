@@ -129,17 +129,17 @@ function alertaTxt(nr){
   const cal=getZoneCal();
   const ev=cal.tipoEvento||'desborde';
   if(nr>=90){
-    if(ev==='aluvion')return '\uD83D\uDD34 ALARMA DE ALUVIÓN';
-    return '\uD83D\uDD34 ALARMA DE RIESGO POR DESBORDE DE RÍO';
+    if(ev==='aluvion')return '\U0001F534 ALARMA DE ALUVIÓN';
+    return '\U0001F534 ALARMA DE RIESGO POR DESBORDE DE RÍO';
   }
   if(nr>=80){
-    if(ev==='aluvion')return '\uD83D\uDEA8 ALERTA DE ALUVIÓN';
-    if(ev==='crecida_aluvion')return '\uD83D\uDEA8 ALERTA DE CRECIDA';
-    return '\uD83D\uDEA8 ALERTA POR DESBORDE DE RÍO';
+    if(ev==='aluvion')return '\U0001F6A8 ALERTA DE ALUVIÓN';
+    if(ev==='crecida_aluvion')return '\U0001F6A8 ALERTA DE CRECIDA';
+    return '\U0001F6A8 ALERTA POR DESBORDE DE RÍO';
   }
   if(nr>=70){
-    if(ev==='aluvion')return '\u26A0\uFE0F PRECAUCIÓN ALUVIÓN';
-    return '\u26A0\uFE0F ESTADO DE PRECAUCIÓN';
+    if(ev==='aluvion')return '\u26A0 PRECAUCIÓN ALUVIÓN';
+    return '\u26A0 ESTADO DE PRECAUCIÓN';
   }
   return '';
 }

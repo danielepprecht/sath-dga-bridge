@@ -1,14 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-17T18:06:41.220939+00:00",
-    "timestamp_chile": "2026-07-17T14:06:41.220939-04:00",
+    "timestamp_utc": "2026-07-17T23:48:30.280369+00:00",
+    "timestamp_chile": "2026-07-17T19:48:30.280369-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "fetch_ok": true,
-    "n_estaciones_ok": 8,
+    "n_estaciones_ok": 9,
     "n_estaciones": 12,
     "n_raw_registros": 1026,
-    "prox_actualizacion": "2026-07-17T19:06:41.220939+00:00"
+    "prox_actualizacion": "2026-07-18T00:48:30.280369+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -50,6 +50,20 @@
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "RIO LEUFUCADE EN PURULON",
+      "es_proxy": false,
+      "estado": "ok"
+    },
+    "pupunahue": {
+      "codigo": "10122003",
+      "nombre": "Rio Calle Calle En Pupunahue",
+      "cuenca": "Calle-Calle",
+      "lat": -39.72,
+      "lon": -72.47,
+      "q_m3s": 0.0,
+      "pp_mm": null,
+      "nivel_m": null,
+      "fecha_dato": null,
+      "variable": "RIO CALLE CALLE EN PUPUNAHUE",
       "es_proxy": false,
       "estado": "ok"
     },
@@ -115,7 +129,7 @@
       "cuenca": "San Pedro",
       "lat": -39.79,
       "lon": -72.43,
-      "q_m3s": 0.0,
+      "q_m3s": 0.1,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,

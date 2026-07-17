@@ -426,22 +426,18 @@ button{cursor:pointer}button:hover{background:#f8fafc}
 // ESTACIONES — 12 estaciones Los Ríos con metadatos
 // ═══════════════════════════════════════════════════
 const STNS = {
-  // CUENCA VALDIVIA / CALLE-CALLE
-  antihue:    {name:'Antihue',         lat:-39.85,lon:-73.10,cuenca:'Calle-Calle',  red:'DGA+INIA', tipo:'Fluvio+Pluv', zona:'costera-media', access:'dga+inia'},
-  rinihue:    {name:'L. Riñihue',      lat:-39.79,lon:-72.43,cuenca:'Valdivia',     red:'DGA',      tipo:'Limnimétrica',zona:'andina-media',  access:'dga'},
-  mamalona:   {name:'Mamalona',        lat:-39.58,lon:-72.18,cuenca:'Panguipulli',  red:'INIA/UFRO',tipo:'Pluviométrica',zona:'andina',        access:'inia'},
-  valdivia:   {name:'Valdivia DMC',    lat:-39.64,lon:-73.09,cuenca:'Ref. urbana',  red:'DMC+INIA', tipo:'Meteorológica',zona:'costera',       access:'dga+inia'},
-  corral:     {name:'Corral',          lat:-39.88,lon:-73.43,cuenca:'Desemb. Valdivia',red:'INIA+DMC',tipo:'Meteorológica',zona:'costera',     access:'inia'},
-  // CUENCA CRUCES
-  lacpicada:  {name:'R. Cruces-Picada',lat:-39.82,lon:-73.27,cuenca:'Cruces',       red:'DGA',      tipo:'Fluviométrica',zona:'costera',       access:'dga'},
-  laslomas:   {name:'Las Lomas',       lat:-39.94,lon:-73.02,cuenca:'Máfil/Cruces', red:'INIA',     tipo:'Pluviométrica',zona:'costera',       access:'inia'},
-  // CUENCA SAN PEDRO / PANGUIPULLI
-  tegualda:   {name:'Tegualda',        lat:-40.17,lon:-72.62,cuenca:'San Pedro',    red:'DGA+INIA', tipo:'Fluvio+Pluv', zona:'intermedia',    access:'dga+inia'},
-  panguipulli:{name:'Panguipulli DMC', lat:-39.64,lon:-72.33,cuenca:'Lago Panq.',   red:'DMC+INIA', tipo:'Meteorológica',zona:'andina',        access:'inia'},
-  // CUENCA BUENO / PILMAIQUÉN
-  pilmaiquen: {name:'R. Pilmaiquén',   lat:-40.18,lon:-72.37,cuenca:'Bueno (Ranco)',red:'DGA',      tipo:'Fluviométrica',zona:'andina-media',  access:'dga'},
-  launion:    {name:'La Unión',        lat:-40.29,lon:-73.09,cuenca:'Bueno sur',    red:'INIA',     tipo:'Meteorológica',zona:'costera-sur',   access:'inia'},
-  riobueno:   {name:'Río Bueno',       lat:-40.69,lon:-72.97,cuenca:'Bueno',        red:'DGA',      tipo:'Fluviométrica',zona:'costera-sur',   access:'dga'},
+  antihue:    {name:'Río Calle-Calle en Antilhue',    cod:'10122002',lat:-39.85,lon:-73.10,cuenca:'Calle-Calle', tipo:'Fluviométrica',access:'dga'},
+  rinihue:    {name:'Río San Pedro en Lago Riñihue',  cod:'10111001',lat:-39.79,lon:-72.43,cuenca:'San Pedro',   tipo:'Fluviométrica',access:'dga'},
+  mamalona:   {name:'Río San Pedro en Pucono',        cod:'10113003',lat:-39.58,lon:-72.18,cuenca:'San Pedro',   tipo:'Fluviométrica',access:'dga'},
+  valdivia:   {name:'Río Cruces en Rucaco',           cod:'10134001',lat:-39.64,lon:-73.09,cuenca:'Cruces',      tipo:'Fluviométrica',access:'dga'},
+  corral:     {name:'Est. Meteorológica Corral',      cod:'10200001',lat:-39.88,lon:-73.43,cuenca:'Costero',     tipo:'Meteorológica',access:'dga'},
+  lacpicada:  {name:'Río Leufucade en Purulón',       cod:'10133000',lat:-39.82,lon:-73.27,cuenca:'Cruces',      tipo:'Fluviométrica',access:'dga'},
+  laslomas:   {name:'Río Negro en Las Lomas',         cod:'10411002',lat:-39.94,lon:-73.02,cuenca:'Bueno sur',   tipo:'Fluviométrica',access:'dga'},
+  tegualda:   {name:'Río Toro en Tegualda',           cod:'10351001',lat:-40.17,lon:-72.62,cuenca:'San Pedro',   tipo:'Fluviométrica',access:'dga'},
+  panguipulli:{name:'Canal Hueninca - Lago Calafquén',cod:'10107003',lat:-39.64,lon:-72.33,cuenca:'Calle-Calle',tipo:'Fluviométrica',access:'dga'},
+  pilmaiquen: {name:'Río Pilmaiquén en San Pablo',    cod:'10328001',lat:-40.18,lon:-72.37,cuenca:'Bueno-Ranco', tipo:'Fluviométrica',access:'dga'},
+  launion:    {name:'Río Llollelhue en La Unión',     cod:'10313001',lat:-40.29,lon:-73.09,cuenca:'Bueno',       tipo:'Fluviométrica',access:'dga'},
+  riobueno:   {name:'Río Bueno en Bueno',             cod:'10311001',lat:-40.69,lon:-72.97,cuenca:'Bueno',       tipo:'Fluviométrica',access:'dga'},
 };
 // Gradient coast→andes order
 const GRADIENT_ORDER=['corral','laslomas','lacpicada','valdivia','antihue','launion','tegualda','riobueno','pilmaiquen','rinihue','panguipulli','mamalona'];
@@ -597,9 +593,13 @@ function buildRealData(id){
   }
 
   // ── NR con TVC real + IFA + APC ──────────────────────────────────────
+  var _ifa168=(typeof fcstData!=='undefined'&&fcstData[id])?fcstData[id].realIFA168||0:0;
+  var _sf=typeof satFactor==='function'?satFactor(_ifa168):1;
   for(var j=0;j<d.length;j++){
     var sc=scoreNR(Math.max(0,d[j].tvc),d[j].ifa,d[j].apc);
-    d[j].irc=+(sc.nr/100).toFixed(3);
+    d[j].irc=+Math.min(1,sc.nr*_sf/100).toFixed(3);
+    d[j].sf=+_sf.toFixed(3);
+    d[j].ifa168=+_ifa168.toFixed(0);
   }
   return d;
 }
@@ -649,28 +649,22 @@ function computeRealNR(id){
 }
 function updSATHFromRealData(id){
   var rn=computeRealNR(id);if(!rn)return;
-  var nr=rn.nrOper;
-  var nf=document.getElementById('nr-fill');
-  if(nf){nf.style.width=Math.min(100,nr)+'%';
-    nf.style.background=nr>=90?'#dc2626':nr>=80?'#ea580c':nr>=70?'#d97706':'#16a34a';}
-  var vi=document.getElementById('v-irc');if(vi)vi.textContent=nr;
-  updSATHSemaphore(nr);
-  var a=alrt(nr/100),bg=document.getElementById('badge');
-  if(bg){bg.className='badge '+a.cls+(nr>=70?' pulse':'');
-    bg.innerHTML='<i class="ti '+a.icon+'"></i> '+a.txt;}
-  var bnn=document.getElementById('bnn');
-  var info='TVC DGA: '+rn.tvcReal+' m3/s | IFA obs: '+rn.realIFA+'mm -> prox: '+rn.prospIFA+'mm';
-  if(bnn){
-    if(nr>=90){bnn.className='bnn bnn-alarma';bnn.style.display='flex';
-      bnn.innerHTML='<strong>ALARMA - NR '+nr+'/100</strong> | '+info;}
-    else if(nr>=80){bnn.className='bnn bnn-alerta';bnn.style.display='flex';
-      bnn.innerHTML='<strong>ALERTA - NR '+nr+'/100</strong> | '+info;}
-    else if(nr>=70){bnn.className='bnn bnn-precaucion';bnn.style.display='flex';
-      bnn.innerHTML='<strong>PRECAUCION - NR '+nr+'/100</strong> | '+info;}
-    else{bnn.style.display='none';bnn.className='bnn';}
+  if(rn.tvcReal>0){
+    var elT=document.getElementById('v-tvc');
+    if(elT)elT.textContent=rn.tvcReal.toFixed(2);
+    var elAT=document.getElementById('a-tvc');
+    if(elAT&&typeof tvcAct==='function')elAT.textContent=tvcAct(rn.tvcReal);
   }
+  var i168=rn.realIFA168||0;
+  var sfP=rn.satFactor?Math.round((rn.satFactor-1)*100):0;
+  var lbl=i168>350?'Suelo saturado':i168>200?'Suelo muy humedo':i168>100?'Suelo humedo':'Normal';
+  var eA=document.getElementById('a-ifa');
+  if(eA&&typeof ifaAct==='function')
+    eA.innerHTML=ifaAct(rn.realIFA)+
+      '<br><small style="color:#7c3aed">IFA 7d: '+Math.round(i168)+'mm | '+lbl+
+      (sfP>0?' | +'+sfP+'% NR':'')+
+      '</small>';
 }
-
 function genData(){
   const d=[];
   for(let h=0;h<=72;h++){

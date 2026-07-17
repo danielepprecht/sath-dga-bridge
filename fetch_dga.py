@@ -26,6 +26,7 @@ SATH_STATIONS = {
     "10111015": "rinihue",      # Lago Riñihue Estacion de Control
     "10327006": "riobueno",     # Escuela Rural Crucero (cuenca Río Bueno)
     "10307009": "panguipulli",  # Futrono Sector Las Quemas (cuenca Lago Ranco)
+    "10122003": "pupunahue",   # Rio Calle Calle En Pupunahue
     "10304011": "mamalona",     # Fundo Sichahue (cuenca San Pedro/Calcurrupe)
     # Sin telemetría en VipNet — mantienen metadata pero Q=null
     "10122002": "antihue",

@@ -13,7 +13,7 @@ def patch(html):
     orig = js
     log = []
 
-    # ── 1. Nombres oficiales DGA en STNS ─────────────────────────────────
+    # ── 1. Nombres oficiales DGA ──────────────────────────────────────────
     if 'Leufucade' not in js and 'const STNS' in js:
         old = js[js.find('const STNS'):js.find('};', js.find('const STNS'))+2]
         new = """const STNS = {
@@ -26,13 +26,14 @@ def patch(html):
   laslomas:   {name:'Río Negro en Las Lomas',         cod:'10411002',lat:-39.94,lon:-73.02,cuenca:'Bueno sur',   tipo:'Fluviométrica',access:'dga'},
   tegualda:   {name:'Río Toro en Tegualda',           cod:'10351001',lat:-40.17,lon:-72.62,cuenca:'San Pedro',   tipo:'Fluviométrica',access:'dga'},
   panguipulli:{name:'Canal Hueninca - Lago Calafquén',cod:'10107003',lat:-39.64,lon:-72.33,cuenca:'Calle-Calle',tipo:'Fluviométrica',access:'dga'},
+  pupunahue:  {name:'Río Calle-Calle en Pupunahue',    cod:'10122003',lat:-39.72,lon:-72.47,cuenca:'Calle-Calle',tipo:'Fluviométrica',access:'dga'},
   pilmaiquen: {name:'Río Pilmaiquén en San Pablo',    cod:'10328001',lat:-40.18,lon:-72.37,cuenca:'Bueno-Ranco', tipo:'Fluviométrica',access:'dga'},
   launion:    {name:'Río Llollelhue en La Unión',     cod:'10313001',lat:-40.29,lon:-73.09,cuenca:'Bueno',       tipo:'Fluviométrica',access:'dga'},
   riobueno:   {name:'Río Bueno en Bueno',             cod:'10311001',lat:-40.69,lon:-72.97,cuenca:'Bueno',       tipo:'Fluviométrica',access:'dga'},
 };"""
         if old and old in js:
             js = js.replace(old, new, 1)
-            log.append("Nombres oficiales DGA en STNS")
+            log.append("Nombres oficiales DGA")
 
     # ── 2. NR unificado: buildRealData incluye satFactor ─────────────────
     if 'd[j].sf=' not in js:
@@ -56,6 +57,7 @@ def patch(html):
             js = js.replace(OLD, NEW, 1)
             log.append("NR unificado con satFactor en buildRealData")
         else:
+            # Fallback: find simpler pattern
             OLD2 = """  for(var j=0;j<d.length;j++){
     var sc=scoreNR(Math.max(0,d[j].tvc),d[j].ifa,d[j].apc);
     d[j].irc=+(sc.nr/100).toFixed(3);
@@ -76,7 +78,7 @@ def patch(html):
                 js = js.replace(OLD2, NEW2, 1)
                 log.append("NR unificado con satFactor (fallback)")
 
-    # ── 3. satFactor visible en tarjeta NR ───────────────────────────────
+    # ── 3. updUI: satFactor visible en tarjeta NR ─────────────────────────
     if 'sat. IFA7d=' not in js:
         OLD = """  updSATHSemaphore(nr);"""
         NEW = """  updSATHSemaphore(nr);
@@ -93,6 +95,7 @@ def patch(html):
     if 'var nr=rn.nrOper' in js:
         idx = js.find('function updSATHFromRealData(')
         end = js.find('\nfunction ', idx+20)
+        old_fn = js[idx:end]
         new_fn = """function updSATHFromRealData(id){
   var rn=computeRealNR(id);if(!rn)return;
   if(rn.tvcReal>0){
@@ -115,7 +118,7 @@ def patch(html):
             js = js[:idx] + new_fn + js[end:]
             log.append("updSATHFromRealData: no sobreescribe NR + IFA 7d visible")
 
-    # ── 4b. satFactor en tarjeta NR (patrón alternativo) ─────────────────
+    # ── 4b. satFactor visible en tarjeta NR ───────────────────────────────
     if 'sat. IFA7d=' not in js:
         old_sf = "  updSATHSemaphore(nr);\n  document.getElementById('tr-tvc')"
         new_sf = (
@@ -129,44 +132,82 @@ def patch(html):
         )
         if old_sf in js:
             js = js.replace(old_sf, new_sf, 1)
-            log.append("satFactor visible en tarjeta NR (alt)")
+            log.append('satFactor visible en tarjeta NR')
 
-    # ── 5. Dropdown sel-stn con nombres oficiales DGA ─────────────────────
-    OLD_SEL = '<option value="antihue">Antihue (R. Calle-Calle)</option>'
-    NEW_SEL = '<option value="antihue">Río Calle-Calle en Antilhue</option>'
-    if OLD_SEL in html:
+    # ── 5. Dropdown sel-stn con nombres oficiales DGA ───────────────────
+    OLD_SEL = '''<select id="sel-stn">
+      <optgroup label="── Cuenca Valdivia / Calle-Calle ──">
+        <option value="antihue">Antihue (R. Calle-Calle)</option>
+        <option value="rinihue">L. Riñihue (DGA)</option>
+        <option value="mamalona">Mamalona (Panguipulli)</option>
+        <option value="valdivia">Valdivia (DMC)</option>
+        <option value="corral">Corral (ESSAL/INIA)</option>
+      </optgroup>
+      <optgroup label="── Cuenca Cruces ──">
+        <option value="lacpicada">R. Cruces — La Picada</option>'''
+    NEW_SEL = '''<select id="sel-stn">
+      <optgroup label="── Cuenca Valdivia / Calle-Calle ──">
+        <option value="antihue">Río Calle-Calle en Antilhue</option>
+        <option value="rinihue">Río San Pedro en Lago Riñihue</option>
+        <option value="mamalona">Río San Pedro en Pucono</option>
+        <option value="valdivia">Río Cruces en Rucaco</option>
+        <option value="corral">Est. Meteorológica Corral</option>
+      </optgroup>
+      <optgroup label="── Cuenca Cruces ──">
+        <option value="lacpicada">Río Leufucade en Purulón</option>'''
+    if OLD_SEL in html and NEW_SEL not in html:
         html = html.replace(OLD_SEL, NEW_SEL, 1)
-        log.append("Dropdown: Antihue")
-
-    replacements = [
-        ('"rinihue">L. Riñihue (DGA)',       '"rinihue">Río San Pedro en Lago Riñihue'),
-        ('"mamalona">Mamalona (Panguipulli)', '"mamalona">Río San Pedro en Pucono'),
-        ('"valdivia">Valdivia (DMC)',         '"valdivia">Río Cruces en Rucaco'),
-        ('"corral">Corral (ESSAL/INIA)',      '"corral">Est. Meteorológica Corral'),
-        ('"lacpicada">R. Cruces — La Picada','"lacpicada">Río Leufucade en Purulón'),
-        ('"laslomas">Las Lomas (Máfil)',      '"laslomas">Río Negro en Las Lomas'),
-        ('"tegualda">Tegualda (R. San Pedro)','"tegualda">Río Toro en Tegualda'),
-        ('"panguipulli">Panguipulli (DMC/INIA)', '"panguipulli">Canal Hueninca - Lago Calafquén'),
-        ('"pilmaiquen">R. Pilmaiquén — Riñinahue', '"pilmaiquen">Río Pilmaiquén en San Pablo'),
-        ('"launion">La Unión (INIA)',         '"launion">Río Llollelhue en La Unión'),
-        ('"riobueno">Río Bueno (DGA)',        '"riobueno">Río Bueno en Bueno'),
-    ]
-    for old_r, new_r in replacements:
-        if old_r in html:
-            html = html.replace(old_r, new_r, 1)
-    if any(old_r in html for old_r, _ in replacements) is False:
         log.append("Dropdown sel-stn: nombres oficiales DGA")
 
-    # ── 6. Verificar JS balanceado ─────────────────────────────────────────
+    # Resto del dropdown
+    OLD_SEL2 = '''        <option value="laslomas">Las Lomas (Máfil)</option>
+      </optgroup>
+      <optgroup label="── Cuenca San Pedro / Panguipulli ──">
+        <option value="tegualda">Tegualda (R. San Pedro)</option>
+        <option value="panguipulli">Panguipulli (DMC/INIA)</option>
+      </optgroup>
+      <optgroup label="── Cuenca Bueno / Pilmaiquén ──">
+        <option value="pilmaiquen">R. Pilmaiquén — Riñinahue</option>
+        <option value="launion">La Unión (INIA)</option>
+        <option value="riobueno">Río Bueno (DGA)</option>'''
+    NEW_SEL2 = '''        <option value="laslomas">Río Negro en Las Lomas</option>
+      </optgroup>
+      <optgroup label="── Cuenca San Pedro / Panguipulli ──">
+        <option value="tegualda">Río Toro en Tegualda</option>
+        <option value="panguipulli">Canal Hueninca - Lago Calafquén</option>
+      </optgroup>
+      <optgroup label="── Cuenca Bueno / Pilmaiquén ──">
+        <option value="pilmaiquen">Río Pilmaiquén en San Pablo</option>
+        <option value="launion">Río Llollelhue en La Unión</option>
+        <option value="riobueno">Río Bueno en Bueno</option>'''
+    if OLD_SEL2 in html and NEW_SEL2 not in html:
+        html = html.replace(OLD_SEL2, NEW_SEL2, 1)
+        log.append("Dropdown sel-stn: segunda parte nombres DGA")
+
+    # ── 6. Eliminar COGRID de mensajes JS ────────────────────────────────
+    for old_cog, new_cog in [
+        ("COGRID activo. Evaluar evacuación preventiva de riberas.",
+         "Equipo técnico activo. Evaluar evacuación preventiva de riberas."),
+        ("COGRID activo.",
+         "Equipo técnico activo."),
+        ("Escalar a COGRID",
+         "Activar protocolo"),
+    ]:
+        if old_cog in js:
+            js = js.replace(old_cog, new_cog)
+            log.append(f"COGRID eliminado: {old_cog[:40]}")
+
+    # ── 7. Verificar JS balanceado ─────────────────────────────────────────
     op = js.count('{'); cl = js.count('}')
     if op != cl:
         print(f"ERROR JS desbalanceado ({op} vs {cl}) — abortando")
         return html, []
 
-    if js != orig:
-        html = html[:match.start(2)] + js + html[match.end(2):]
+    if js == orig:
+        return html, log
 
-    return html, log
+    new_html = html[:match.start(2)] + js + html[match.end(2):]
+    return new_html, log
 
 def main():
     if not os.path.exists(SATH):
@@ -175,7 +216,7 @@ def main():
         html = f.read()
     print(f"Archivo: {len(html):,} bytes")
     new_html, log = patch(html)
-    if new_html != html:
+    if log:
         with open(SATH, 'w', encoding='utf-8') as f:
             f.write(new_html)
         print(f"Guardado: {len(new_html):,} bytes")

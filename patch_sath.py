@@ -1,211 +1,149 @@
 #!/usr/bin/env python3
-"""patch_sath.py — Aplica y corrige SATH_v5.html — versión limpia"""
+"""patch_sath.py — Aplica todos los fixes al SATH_v5.html via GitHub Actions"""
 import os, sys, re
 from collections import Counter
  
 SATH = "docs/SATH_v5.html"
  
-NR_BLOCK = """
-// === NR REAL + buildRealData desde Open-Meteo ERA5 ===
-const NR_CAL={tvc:{p:0.40,a:1.06,x:3.81},ifa:{p:51.8,a:81.7,x:115.8}};
-const _prevQ={};
-function scoreNR(tvc,ifa){
-  var tp=NR_CAL.tvc.p,ta=NR_CAL.tvc.a,tx=NR_CAL.tvc.x;
-  var ip=NR_CAL.ifa.p,ia=NR_CAL.ifa.a,ix=NR_CAL.ifa.x;
-  var ts=tvc>=tx?Math.min(100,90+(tvc-tx)/tx*15):tvc>=ta?80+(tvc-ta)/(tx-ta)*10:tvc>=tp?70+(tvc-tp)/(ta-tp)*10:tvc/tp*65;
-  var is_=ifa>=ix?Math.min(100,90+(ifa-ix)/ix*10):ifa>=ia?80+(ifa-ia)/(ix-ia)*10:ifa>=ip?70+(ifa-ip)/(ia-ip)*10:ifa/ip*65;
-  var nr=Math.max(ts,is_);
-  if(ts>=70&&is_>=70)nr=Math.min(100,nr+0.1*Math.min(ts,is_));
-  return{nr:Math.min(100,Math.round(nr)),ts:Math.round(ts),is_:Math.round(is_)};
-}
-function buildRealData(id){
-  var fd=fcstData[id];
-  if(!fd||!fd.ok||!fd.hourlyPP||fd.hourlyPP.length<73)return null;
-  var hrPP=fd.hourlyPP;
-  var curQ=(typeof dgaData!=='undefined'&&dgaData&&dgaData.estaciones&&dgaData.estaciones[id])?dgaData.estaciones[id].q_m3s||0:0;
-  var d=[];
-  for(var h=0;h<=72;h++){
-    var pp=Math.max(0,+(hrPP[h]||0));
-    d.push({h:h,pp:+pp.toFixed(1),q:+curQ.toFixed(1)});
+def patch(html):
+    match = re.search(r'(<script>)(.*?)(</script>)', html, re.DOTALL)
+    if not match:
+        return html, []
+    js = match.group(2)
+    orig = js
+    log = []
+ 
+    # ── 1. Nombres oficiales DGA ──────────────────────────────────────────
+    if 'Leufucade' not in js and 'const STNS' in js:
+        old = js[js.find('const STNS'):js.find('};', js.find('const STNS'))+2]
+        new = """const STNS = {
+  antihue:    {name:'Río Calle-Calle en Antilhue',    cod:'10122002',lat:-39.85,lon:-73.10,cuenca:'Calle-Calle', tipo:'Fluviométrica',access:'dga'},
+  rinihue:    {name:'Río San Pedro en Lago Riñihue',  cod:'10111001',lat:-39.79,lon:-72.43,cuenca:'San Pedro',   tipo:'Fluviométrica',access:'dga'},
+  mamalona:   {name:'Río San Pedro en Pucono',        cod:'10113003',lat:-39.58,lon:-72.18,cuenca:'San Pedro',   tipo:'Fluviométrica',access:'dga'},
+  valdivia:   {name:'Río Cruces en Rucaco',           cod:'10134001',lat:-39.64,lon:-73.09,cuenca:'Cruces',      tipo:'Fluviométrica',access:'dga'},
+  corral:     {name:'Est. Meteorológica Corral',      cod:'10200001',lat:-39.88,lon:-73.43,cuenca:'Costero',     tipo:'Meteorológica',access:'dga'},
+  lacpicada:  {name:'Río Leufucade en Purulón',       cod:'10133000',lat:-39.82,lon:-73.27,cuenca:'Cruces',      tipo:'Fluviométrica',access:'dga'},
+  laslomas:   {name:'Río Negro en Las Lomas',         cod:'10411002',lat:-39.94,lon:-73.02,cuenca:'Bueno sur',   tipo:'Fluviométrica',access:'dga'},
+  tegualda:   {name:'Río Toro en Tegualda',           cod:'10351001',lat:-40.17,lon:-72.62,cuenca:'San Pedro',   tipo:'Fluviométrica',access:'dga'},
+  panguipulli:{name:'Canal Hueninca - Lago Calafquén',cod:'10107003',lat:-39.64,lon:-72.33,cuenca:'Calle-Calle',tipo:'Fluviométrica',access:'dga'},
+  pilmaiquen: {name:'Río Pilmaiquén en San Pablo',    cod:'10328001',lat:-40.18,lon:-72.37,cuenca:'Bueno-Ranco', tipo:'Fluviométrica',access:'dga'},
+  launion:    {name:'Río Llollelhue en La Unión',     cod:'10313001',lat:-40.29,lon:-73.09,cuenca:'Bueno',       tipo:'Fluviométrica',access:'dga'},
+  riobueno:   {name:'Río Bueno en Bueno',             cod:'10311001',lat:-40.69,lon:-72.97,cuenca:'Bueno',       tipo:'Fluviométrica',access:'dga'},
+};"""
+        if old and old in js:
+            js = js.replace(old, new, 1)
+            log.append("Nombres oficiales DGA")
+ 
+    # ── 2. NR unificado: buildRealData incluye satFactor ─────────────────
+    if 'd[j].sf=' not in js:
+        OLD = """  for(var j=0;j<d.length;j++){
+    var sc=scoreNR(Math.max(0,d[j].tvc),d[j].ifa,d[j].apc);
+    d[j].irc=+Math.min(1,(sc.nr*sf/100)).toFixed(3);
   }
-  for(var i=0;i<d.length;i++){
-    d[i].dpp=i===0?0:+(d[i].pp-d[i-1].pp).toFixed(2);
-    d[i].tvc=0;
-    var s=Math.max(0,i-71);
-    d[i].ifa=+d.slice(s,i+1).reduce(function(a,x){return a+x.pp;},0).toFixed(1);
-  }
+  return d;
+}"""
+        NEW = """  var _ifa168=(typeof fcstData!=='undefined'&&fcstData[id])?fcstData[id].realIFA168||0:0;
+  var _sf=typeof satFactor==='function'?satFactor(_ifa168):1;
   for(var j=0;j<d.length;j++){
-    var sc=scoreNR(d[j].tvc,d[j].ifa);
+    var sc=scoreNR(Math.max(0,d[j].tvc),d[j].ifa,d[j].apc);
+    d[j].irc=+Math.min(1,sc.nr*_sf/100).toFixed(3);
+    d[j].sf=+_sf.toFixed(3);
+    d[j].ifa168=+_ifa168.toFixed(0);
+  }
+  return d;
+}"""
+        if OLD in js:
+            js = js.replace(OLD, NEW, 1)
+            log.append("NR unificado con satFactor en buildRealData")
+        else:
+            # Fallback: find simpler pattern
+            OLD2 = """  for(var j=0;j<d.length;j++){
+    var sc=scoreNR(Math.max(0,d[j].tvc),d[j].ifa,d[j].apc);
     d[j].irc=+(sc.nr/100).toFixed(3);
   }
   return d;
-}
-function rebuildALLFromRealData(id){
-  var rd=buildRealData(id);
-  if(!rd||rd.length===0)return false;
-  ALL.length=0;
-  rd.forEach(function(x){ALL.push(x);});
-  simH=Math.min(72,ALL.length-1);
-  updUI();updCharts();
-  document.querySelectorAll('span').forEach(function(el){
-    if(el.textContent.trim()==='SIM'){
-      el.textContent='REAL';
-      el.style.background='#dcfce7';
-      el.style.color='#166534';
-    }
-  });
-  return true;
-}
-function computeRealNR(id){
-  var fd=fcstData[id];
-  if(!fd||!fd.ok)return null;
-  var realIFA=fd.realIFA||0,prospIFA=fd.prospectivoIFA||0,tvcReal=0;
-  if(typeof dgaData!=='undefined'&&dgaData&&dgaData.estaciones){
-    var stn=dgaData.estaciones[id];
-    if(stn&&stn.q_m3s!==null){
-      var prev=_prevQ[id];
-      if(prev!==null&&prev!==undefined)tvcReal=Math.max(0,stn.q_m3s-prev);
-      _prevQ[id]=stn.q_m3s;
-    }
+}"""
+            NEW2 = """  var _ifa168=(typeof fcstData!=='undefined'&&fcstData[id])?fcstData[id].realIFA168||0:0;
+  var _sf=typeof satFactor==='function'?satFactor(_ifa168):1;
+  for(var j=0;j<d.length;j++){
+    var sc=scoreNR(Math.max(0,d[j].tvc),d[j].ifa,d[j].apc);
+    d[j].irc=+Math.min(1,sc.nr*_sf/100).toFixed(3);
+    d[j].sf=+_sf.toFixed(3);
+    d[j].ifa168=+_ifa168.toFixed(0);
   }
-  var nrO=scoreNR(tvcReal,realIFA),nrP=scoreNR(tvcReal,prospIFA);
-  return{nrOper:Math.max(nrO.nr,nrP.nr),tvcReal:Math.round(tvcReal*100)/100,
-    realIFA:Math.round(realIFA),prospIFA:Math.round(prospIFA)};
-}
-function updSATHFromRealData(id){
+  return d;
+}"""
+            if OLD2 in js:
+                js = js.replace(OLD2, NEW2, 1)
+                log.append("NR unificado con satFactor (fallback)")
+ 
+    # ── 3. updUI: satFactor visible en tarjeta NR ─────────────────────────
+    if 'sat. IFA7d=' not in js:
+        OLD = """  updSATHSemaphore(nr);"""
+        NEW = """  updSATHSemaphore(nr);
+  if(cur.sf&&cur.sf>1.01){
+    const elNRa=document.getElementById('a-irc');
+    if(elNRa){const sp=Math.round((cur.sf-1)*100);
+      elNRa.textContent=ircAct(cur.irc)+' (+'+sp+'% sat. IFA7d='+cur.ifa168+'mm)';}
+  }"""
+        if OLD in js:
+            js = js.replace(OLD, NEW, 1)
+            log.append("satFactor visible en tarjeta NR")
+ 
+    # ── 4. updSATHFromRealData: no sobreescribe NR ────────────────────────
+    if 'var nr=rn.nrOper' in js:
+        idx = js.find('function updSATHFromRealData(')
+        end = js.find('\nfunction ', idx+20)
+        old_fn = js[idx:end]
+        new_fn = """function updSATHFromRealData(id){
   var rn=computeRealNR(id);if(!rn)return;
-  var nr=rn.nrOper;
-  var nf=document.getElementById('nr-fill');
-  if(nf){nf.style.width=Math.min(100,nr)+'%';
-    nf.style.background=nr>=90?'#dc2626':nr>=80?'#ea580c':nr>=70?'#d97706':'#16a34a';}
-  var vi=document.getElementById('v-irc');if(vi)vi.textContent=nr;
-  if(typeof updSATHSemaphore==='function')updSATHSemaphore(nr);
-  var bnn=document.getElementById('bnn');
-  var info='IFA obs: '+rn.realIFA+'mm -> prox: '+rn.prospIFA+'mm';
-  if(bnn){
-    if(nr>=90){bnn.className='bnn bnn-alarma';bnn.style.display='flex';
-      bnn.innerHTML='<strong>ALARMA NR '+nr+'/100</strong> | '+info;}
-    else if(nr>=80){bnn.className='bnn bnn-alerta';bnn.style.display='flex';
-      bnn.innerHTML='<strong>ALERTA NR '+nr+'/100</strong> | '+info;}
-    else if(nr>=70){bnn.className='bnn bnn-precaucion';bnn.style.display='flex';
-      bnn.innerHTML='<strong>PRECAUCION NR '+nr+'/100</strong> | '+info;}
-    else{bnn.style.display='none';bnn.className='bnn';}
+  if(rn.tvcReal>0){
+    var elT=document.getElementById('v-tvc');
+    if(elT)elT.textContent=rn.tvcReal.toFixed(2);
+    var elAT=document.getElementById('a-tvc');
+    if(elAT&&typeof tvcAct==='function')elAT.textContent=tvcAct(rn.tvcReal);
   }
-}
-"""
+  var i168=rn.realIFA168||0;
+  var sfP=rn.satFactor?Math.round((rn.satFactor-1)*100):0;
+  var lbl=i168>350?'Suelo saturado':i168>200?'Suelo muy humedo':i168>100?'Suelo humedo':'Normal';
+  var eA=document.getElementById('a-ifa');
+  if(eA&&typeof ifaAct==='function')
+    eA.innerHTML=ifaAct(rn.realIFA)+
+      '<br><small style="color:#7c3aed">IFA 7d: '+Math.round(i168)+'mm | '+lbl+
+      (sfP>0?' | +'+sfP+'% NR':'')+
+      '</small>';
+}"""
+        if idx >= 0 and end > idx:
+            js = js[:idx] + new_fn + js[end:]
+            log.append("updSATHFromRealData: no sobreescribe NR + IFA 7d visible")
  
-def remove_duplicate_nr_blocks(js):
-    """Elimina TODOS los bloques NR duplicados del JS y deja solo uno."""
-    # Marcadores del bloque NR que el parche inyecta
-    START = "// === NR REAL + buildRealData"
-    END_MARKER = "function updSATHFromRealData(id){"
- 
-    positions = [m.start() for m in re.finditer(re.escape(START), js)]
-    if len(positions) <= 1:
-        return js, False  # sin duplicados
- 
-    # Encontrar el fin del último bloque updSATHFromRealData
-    def find_block_end(js, start):
-        idx = js.find(END_MARKER, start)
-        if idx < 0: return start + 100
-        # Buscar la } de cierre de la función
-        depth = 0
-        for i in range(idx, min(idx+3000, len(js))):
-            if js[i] == '{': depth += 1
-            elif js[i] == '}':
-                depth -= 1
-                if depth == 0: return i + 1
-        return idx + 500
- 
-    # Eliminar todos los bloques excepto el último
-    blocks_to_remove = positions[:-1]  # mantener el último
-    for pos in reversed(blocks_to_remove):
-        end = find_block_end(js, pos)
-        js = js[:pos] + js[end:]
- 
-    return js, True
- 
- 
-def patch(html):
-    log = []
- 
-    # Extraer JS
-    match = re.search(r'(<script>)(.*?)(</script>)', html, re.DOTALL)
-    if not match:
-        print("ERROR: no se encontró bloque <script>"); return html, log
-    pre, js, post = match.group(1), match.group(2), match.group(3)
-    orig_js = js
- 
-    # ── 1. Eliminar duplicados const NR_CAL / _prevQ / funciones ─────────
-    js, removed = remove_duplicate_nr_blocks(js)
-    if removed:
-        log.append("Eliminados bloques NR duplicados (fix SyntaxError const)")
- 
-    # ── 2. Eliminar bug: id no definido en fetchAllOM ─────────────────────
-    bad = ("  rebuildALLFromRealData(id);\n"
-           "  updSATHFromRealData(id);\n"
-           "  fetchFloodForecast(activeStn);")
-    ok  = "  fetchFloodForecast(activeStn);"
-    if bad in js:
-        js = js.replace(bad, ok, 1)
-        log.append("Eliminado id-no-definido en fetchAllOM")
- 
-    # ── 3. Asegurar que el bloque NR existe (exactamente una vez) ─────────
-    if "function buildRealData(" not in js:
-        target = "\nfunction genData(){"
-        if target in js:
-            js = js.replace(target, NR_BLOCK + target, 1)
-            log.append("Inyectado bloque NR REAL")
- 
-    # ── 4. Hook fetchAllOM (solo si no está ya) ───────────────────────────
-    old_fa = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  renderFc"
-    new_fa = "await Promise.all(Object.keys(STNS).map(id=>fetchOM(id)));\n  rebuildALLFromRealData(activeStn);\n  updSATHFromRealData(activeStn);\n  renderFc"
-    if old_fa in js and "rebuildALLFromRealData(activeStn)" not in js:
-        js = js.replace(old_fa, new_fa)
-        log.append("Hook fetchAllOM")
- 
-    # ── 5. Hook cambio estación ───────────────────────────────────────────
-    old_stn = "updRealIFA();\n  fetchFloodForecast"
-    new_stn = "updRealIFA();\n  rebuildALLFromRealData(id);\n  updSATHFromRealData(id);\n  fetchFloodForecast"
-    if old_stn in js and "rebuildALLFromRealData(id)" not in js:
-        js = js.replace(old_stn, new_stn)
-        log.append("Hook cambio estacion")
- 
-    # ── 6. Verificar JS balanceado ────────────────────────────────────────
+    # ── 5. Verificar JS balanceado ─────────────────────────────────────────
     op = js.count('{'); cl = js.count('}')
     if op != cl:
-        print(f"ERROR JS no balanceado ({op} vs {cl}) — abortando")
+        print(f"ERROR JS desbalanceado ({op} vs {cl}) — abortando")
         return html, []
  
-    # ── 7. Verificar no quedan const duplicados en scope global ──────────
-    top_consts = re.findall(r'(?:^|\n)const\s+(\w+)\s*=', js)
-    dup = {k:v for k,v in Counter(top_consts).items() if v > 1}
-    if dup:
-        print(f"ADVERTENCIA: consts duplicados en scope global: {dup}")
- 
-    if js == orig_js:
+    if js == orig:
         return html, log
  
-    new_html = html[:match.start()] + pre + js + post + html[match.end():]
+    new_html = html[:match.start(2)] + js + html[match.end(2):]
     return new_html, log
  
 def main():
-    from collections import Counter
     if not os.path.exists(SATH):
-        print(f"AVISO: {SATH} no encontrado — omitiendo parche (subir el archivo primero)")
-        return 0
-    with open(SATH, encoding="utf-8") as f:
+        print(f"AVISO: {SATH} no encontrado — omitiendo"); return 0
+    with open(SATH, encoding='utf-8') as f:
         html = f.read()
     print(f"Archivo: {len(html):,} bytes")
     new_html, log = patch(html)
     if log:
-        with open(SATH,"w",encoding="utf-8") as f:
+        with open(SATH, 'w', encoding='utf-8') as f:
             f.write(new_html)
         print(f"Guardado: {len(new_html):,} bytes")
         for l in log: print(f"  [+] {l}")
     else:
-        print("Sin cambios")
+        print("Sin cambios necesarios")
     return 0
  
-if __name__=="__main__":
+if __name__ == '__main__':
     sys.exit(main())

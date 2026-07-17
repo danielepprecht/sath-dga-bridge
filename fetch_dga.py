@@ -44,6 +44,7 @@ SATH_META = {
     "lacpicada":   {"nombre":"Rio Leufucade En Purulon",                        "cuenca":"Cruces",      "lat":-39.82,"lon":-73.27},
     "laslomas":    {"nombre":"Rio Negro En Las Lomas",                          "cuenca":"Bueno-sur",   "lat":-39.94,"lon":-73.02},
     "tegualda":    {"nombre":"Rio Toro En Tegualda",                            "cuenca":"San Pedro",   "lat":-40.17,"lon":-72.62},
+    "pupunahue":   {"nombre":"Rio Calle Calle En Pupunahue", "cuenca":"Calle-Calle", "lat":-39.72,"lon":-72.47},
     "panguipulli": {"nombre":"Futrono Sector Las Quemas - Lago Ranco [proxy]",  "cuenca":"Calle-Calle", "lat":-39.64,"lon":-72.33},
     "pilmaiquen":  {"nombre":"Rio Pilmaiquen En San Pablo",                     "cuenca":"Bueno-Ranco", "lat":-40.18,"lon":-72.37},
     "launion":     {"nombre":"Rio Llollelhue En La Union",                      "cuenca":"Bueno",       "lat":-40.29,"lon":-73.09},

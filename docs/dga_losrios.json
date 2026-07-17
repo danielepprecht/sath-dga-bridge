@@ -1,14 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-17T05:44:01.219953+00:00",
-    "timestamp_chile": "2026-07-17T01:44:01.219953-04:00",
+    "timestamp_utc": "2026-07-17T08:12:19.855691+00:00",
+    "timestamp_chile": "2026-07-17T04:12:19.855691-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "fetch_ok": true,
     "n_estaciones_ok": 8,
     "n_estaciones": 12,
     "n_raw_registros": 1026,
-    "prox_actualizacion": "2026-07-17T06:44:01.219953+00:00"
+    "prox_actualizacion": "2026-07-17T09:12:19.855691+00:00"
   },
   "estaciones": {
     "pilmaiquen": {

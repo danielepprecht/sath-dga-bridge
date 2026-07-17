@@ -1131,6 +1131,11 @@ function updUI(){
     nrFill.style.background=nr>=90?'#dc2626':nr>=80?'#ea580c':nr>=70?'#d97706':'#16a34a';
   }
   updSATHSemaphore(nr);
+  if(cur.sf&&cur.sf>1.01){
+    const elNRa=document.getElementById('a-irc');
+    if(elNRa){const sp=Math.round((cur.sf-1)*100);
+      elNRa.textContent=ircAct(cur.irc)+' (+'+sp+'% sat. IFA7d='+cur.ifa168+'mm)';}
+  }
   document.getElementById('tr-tvc').innerHTML=ti(prev.tvc,cur.tvc);
   document.getElementById('tr-apc').innerHTML=ti(prev.apc||prev.dpp,cur.apc||cur.dpp);
   document.getElementById('tr-ifa').innerHTML=ti(prev.ifa,cur.ifa);

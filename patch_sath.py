@@ -2,9 +2,9 @@
 """patch_sath.py — Aplica todos los fixes al SATH_v5.html via GitHub Actions"""
 import os, sys, re
 from collections import Counter
- 
+
 SATH = "docs/SATH_v5.html"
- 
+
 def patch(html):
     match = re.search(r'(<script>)(.*?)(</script>)', html, re.DOTALL)
     if not match:
@@ -12,7 +12,7 @@ def patch(html):
     js = match.group(2)
     orig = js
     log = []
- 
+
     # ── 1. Nombres oficiales DGA ──────────────────────────────────────────
     if 'Leufucade' not in js and 'const STNS' in js:
         old = js[js.find('const STNS'):js.find('};', js.find('const STNS'))+2]
@@ -33,7 +33,7 @@ def patch(html):
         if old and old in js:
             js = js.replace(old, new, 1)
             log.append("Nombres oficiales DGA")
- 
+
     # ── 2. NR unificado: buildRealData incluye satFactor ─────────────────
     if 'd[j].sf=' not in js:
         OLD = """  for(var j=0;j<d.length;j++){
@@ -76,7 +76,7 @@ def patch(html):
             if OLD2 in js:
                 js = js.replace(OLD2, NEW2, 1)
                 log.append("NR unificado con satFactor (fallback)")
- 
+
     # ── 3. updUI: satFactor visible en tarjeta NR ─────────────────────────
     if 'sat. IFA7d=' not in js:
         OLD = """  updSATHSemaphore(nr);"""
@@ -89,7 +89,7 @@ def patch(html):
         if OLD in js:
             js = js.replace(OLD, NEW, 1)
             log.append("satFactor visible en tarjeta NR")
- 
+
     # ── 4. updSATHFromRealData: no sobreescribe NR ────────────────────────
     if 'var nr=rn.nrOper' in js:
         idx = js.find('function updSATHFromRealData(')
@@ -116,19 +116,35 @@ def patch(html):
         if idx >= 0 and end > idx:
             js = js[:idx] + new_fn + js[end:]
             log.append("updSATHFromRealData: no sobreescribe NR + IFA 7d visible")
- 
+
+    # ── 4b. satFactor visible en tarjeta NR ───────────────────────────────
+    if 'sat. IFA7d=' not in js:
+        old_sf = "  updSATHSemaphore(nr);\n  document.getElementById('tr-tvc')"
+        new_sf = (
+            "  updSATHSemaphore(nr);\n"
+            "  if(cur.sf&&cur.sf>1.01){\n"
+            "    const elNRa=document.getElementById('a-irc');\n"
+            "    if(elNRa){const sp=Math.round((cur.sf-1)*100);\n"
+            "      elNRa.textContent=ircAct(cur.irc)+' (+'+sp+'% sat. IFA7d='+cur.ifa168+'mm)';}\n"
+            "  }\n"
+            "  document.getElementById('tr-tvc')"
+        )
+        if old_sf in js:
+            js = js.replace(old_sf, new_sf, 1)
+            log.append('satFactor visible en tarjeta NR')
+
     # ── 5. Verificar JS balanceado ─────────────────────────────────────────
     op = js.count('{'); cl = js.count('}')
     if op != cl:
         print(f"ERROR JS desbalanceado ({op} vs {cl}) — abortando")
         return html, []
- 
+
     if js == orig:
         return html, log
- 
+
     new_html = html[:match.start(2)] + js + html[match.end(2):]
     return new_html, log
- 
+
 def main():
     if not os.path.exists(SATH):
         print(f"AVISO: {SATH} no encontrado — omitiendo"); return 0
@@ -144,6 +160,6 @@ def main():
     else:
         print("Sin cambios necesarios")
     return 0
- 
+
 if __name__ == '__main__':
     sys.exit(main())

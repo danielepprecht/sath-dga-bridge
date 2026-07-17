@@ -56,7 +56,6 @@ def patch(html):
             js = js.replace(OLD, NEW, 1)
             log.append("NR unificado con satFactor en buildRealData")
         else:
-            # Fallback: find simpler pattern
             OLD2 = """  for(var j=0;j<d.length;j++){
     var sc=scoreNR(Math.max(0,d[j].tvc),d[j].ifa,d[j].apc);
     d[j].irc=+(sc.nr/100).toFixed(3);
@@ -94,7 +93,6 @@ def patch(html):
     if 'var nr=rn.nrOper' in js:
         idx = js.find('function updSATHFromRealData(')
         end = js.find('\nfunction ', idx+20)
-        old_fn = js[idx:end]
         new_fn = """function updSATHFromRealData(id){
   var rn=computeRealNR(id);if(!rn)return;
   if(rn.tvcReal>0){

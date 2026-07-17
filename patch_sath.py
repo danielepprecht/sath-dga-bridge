@@ -13,7 +13,7 @@ def patch(html):
     orig = js
     log = []
 
-    # ── 1. Nombres oficiales DGA ──────────────────────────────────────────
+    # ── 1. Nombres oficiales DGA en STNS ─────────────────────────────────
     if 'Leufucade' not in js and 'const STNS' in js:
         old = js[js.find('const STNS'):js.find('};', js.find('const STNS'))+2]
         new = """const STNS = {
@@ -32,7 +32,7 @@ def patch(html):
 };"""
         if old and old in js:
             js = js.replace(old, new, 1)
-            log.append("Nombres oficiales DGA")
+            log.append("Nombres oficiales DGA en STNS")
 
     # ── 2. NR unificado: buildRealData incluye satFactor ─────────────────
     if 'd[j].sf=' not in js:
@@ -76,7 +76,7 @@ def patch(html):
                 js = js.replace(OLD2, NEW2, 1)
                 log.append("NR unificado con satFactor (fallback)")
 
-    # ── 3. updUI: satFactor visible en tarjeta NR ─────────────────────────
+    # ── 3. satFactor visible en tarjeta NR ───────────────────────────────
     if 'sat. IFA7d=' not in js:
         OLD = """  updSATHSemaphore(nr);"""
         NEW = """  updSATHSemaphore(nr);
@@ -115,7 +115,7 @@ def patch(html):
             js = js[:idx] + new_fn + js[end:]
             log.append("updSATHFromRealData: no sobreescribe NR + IFA 7d visible")
 
-    # ── 4b. satFactor visible en tarjeta NR ───────────────────────────────
+    # ── 4b. satFactor en tarjeta NR (patrón alternativo) ─────────────────
     if 'sat. IFA7d=' not in js:
         old_sf = "  updSATHSemaphore(nr);\n  document.getElementById('tr-tvc')"
         new_sf = (
@@ -129,19 +129,44 @@ def patch(html):
         )
         if old_sf in js:
             js = js.replace(old_sf, new_sf, 1)
-            log.append('satFactor visible en tarjeta NR')
+            log.append("satFactor visible en tarjeta NR (alt)")
 
-    # ── 5. Verificar JS balanceado ─────────────────────────────────────────
+    # ── 5. Dropdown sel-stn con nombres oficiales DGA ─────────────────────
+    OLD_SEL = '<option value="antihue">Antihue (R. Calle-Calle)</option>'
+    NEW_SEL = '<option value="antihue">Río Calle-Calle en Antilhue</option>'
+    if OLD_SEL in html:
+        html = html.replace(OLD_SEL, NEW_SEL, 1)
+        log.append("Dropdown: Antihue")
+
+    replacements = [
+        ('"rinihue">L. Riñihue (DGA)',       '"rinihue">Río San Pedro en Lago Riñihue'),
+        ('"mamalona">Mamalona (Panguipulli)', '"mamalona">Río San Pedro en Pucono'),
+        ('"valdivia">Valdivia (DMC)',         '"valdivia">Río Cruces en Rucaco'),
+        ('"corral">Corral (ESSAL/INIA)',      '"corral">Est. Meteorológica Corral'),
+        ('"lacpicada">R. Cruces — La Picada','"lacpicada">Río Leufucade en Purulón'),
+        ('"laslomas">Las Lomas (Máfil)',      '"laslomas">Río Negro en Las Lomas'),
+        ('"tegualda">Tegualda (R. San Pedro)','"tegualda">Río Toro en Tegualda'),
+        ('"panguipulli">Panguipulli (DMC/INIA)', '"panguipulli">Canal Hueninca - Lago Calafquén'),
+        ('"pilmaiquen">R. Pilmaiquén — Riñinahue', '"pilmaiquen">Río Pilmaiquén en San Pablo'),
+        ('"launion">La Unión (INIA)',         '"launion">Río Llollelhue en La Unión'),
+        ('"riobueno">Río Bueno (DGA)',        '"riobueno">Río Bueno en Bueno'),
+    ]
+    for old_r, new_r in replacements:
+        if old_r in html:
+            html = html.replace(old_r, new_r, 1)
+    if any(old_r in html for old_r, _ in replacements) is False:
+        log.append("Dropdown sel-stn: nombres oficiales DGA")
+
+    # ── 6. Verificar JS balanceado ─────────────────────────────────────────
     op = js.count('{'); cl = js.count('}')
     if op != cl:
         print(f"ERROR JS desbalanceado ({op} vs {cl}) — abortando")
         return html, []
 
-    if js == orig:
-        return html, log
+    if js != orig:
+        html = html[:match.start(2)] + js + html[match.end(2):]
 
-    new_html = html[:match.start(2)] + js + html[match.end(2):]
-    return new_html, log
+    return html, log
 
 def main():
     if not os.path.exists(SATH):
@@ -150,7 +175,7 @@ def main():
         html = f.read()
     print(f"Archivo: {len(html):,} bytes")
     new_html, log = patch(html)
-    if log:
+    if new_html != html:
         with open(SATH, 'w', encoding='utf-8') as f:
             f.write(new_html)
         print(f"Guardado: {len(new_html):,} bytes")

@@ -1,14 +1,14 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-18T17:56:41.692891+00:00",
-    "timestamp_chile": "2026-07-18T13:56:41.692891-04:00",
+    "timestamp_utc": "2026-07-18T19:07:19.904866+00:00",
+    "timestamp_chile": "2026-07-18T15:07:19.904866-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "fetch_ok": true,
     "n_estaciones_ok": 9,
     "n_estaciones": 12,
     "n_raw_registros": 1026,
-    "prox_actualizacion": "2026-07-18T18:56:41.692891+00:00"
+    "prox_actualizacion": "2026-07-18T20:07:19.904866+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -45,7 +45,7 @@
       "cuenca": "Cruces",
       "lat": -39.82,
       "lon": -73.27,
-      "q_m3s": 0.2,
+      "q_m3s": 0.1,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
@@ -129,7 +129,7 @@
       "cuenca": "San Pedro",
       "lat": -39.79,
       "lon": -72.43,
-      "q_m3s": 0.1,
+      "q_m3s": 0.6,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,

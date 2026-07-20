@@ -1,35 +1,38 @@
 #!/usr/bin/env python3
-"""SATH DGA Bridge v9 — VipNet API — mapeo honesto (sin caudal falso)
+"""SATH DGA Bridge v10 — DGASAT (cookie de sesión) + VipNet honesto como respaldo
 
-CAMBIO CRÍTICO v9 (2026-07-20):
-VipNet (vipnet.mop.gob.cl / VHN "Visualizador Hidrométrico Nacional") es una
-red METEOROLÓGICA (Precipitación, Temperatura, Embalse, Nieve, Humedad,
-Viento). NO expone Caudal ni Nivel de río como variable, para ninguna
-estación. El campo "value" que trae cada registro del endpoint
-/v1/vipnet/estaciones/valor es un placeholder que en la práctica vale 0 para
-TODAS las estaciones fluviométricas (se verificó en vivo para las 12
-estaciones SATH, incluidas las que este script venía marcando "ok").
+HISTORIAL:
+v9  — VipNet (VHN) es una red meteorológica: no expone caudal ni nivel de
+       río para ninguna estación. Se eliminó el fallback que fabricaba
+       q_m3s=0.0 disfrazado de "ok". Desde entonces las 12 estaciones
+       quedan honestamente "sin_telemetria" si no hay dato real.
+v10 — Se agrega un camino OPCIONAL para leer datos reales de DGASAT/
+       Hidrolínea (Red Hidrométrica DGA), la fuente autoritativa de
+       caudal/nivel. DGASAT exige login con reCAPTCHA, que este script no
+       resuelve ni intenta sortear. En cambio, usa una COOKIE DE SESIÓN ya
+       autenticada por un humano (secret DGASAT_SESSION_COOKIE).
 
-En v8, extract_value() caía de vuelta a ese campo "value" cuando no
-encontraba parámetros anidados, así que el bridge llevaba semanas publicando
-q_m3s=0.0 disfrazado de dato real para 9/12 estaciones. v9 elimina ese
-fallback: si no hay un parámetro anidado real, la estación queda
-"sin_telemetria" — sin inventar ceros.
+       Se verificó en vivo que, una vez logueado en el navegador, las
+       peticiones posteriores al reporte de alertas de DGASAT funcionan
+       solo con la cookie de sesión — el parámetro de reCAPTCHA NO se
+       revalida en cada request. Es decir: el reCAPTCHA protege el login,
+       no cada consulta. Eso hace viable este mecanismo semi-automatizado.
 
-La fuente real de caudal/nivel de DGA es DGASAT/Hidrolínea
-(snia.mop.gob.cl/dgasat), que es el diseño original de este bridge (ver
-README) y para la que ya existen los secrets DGA_USER/DGA_PASS. Verificado
-en vivo (sesión autenticada manual): DGASAT SÍ tiene datos reales y
-recientes para varias de estas estaciones (ej. 10134001 Río Cruces en
-Rucaco). El bloqueo para automatizarlo por hora vía GitHub Actions es que el
-login de DGASAT exige un token de Google reCAPTCHA generado interactivamente
-en el navegador — no es algo que este script (requests, sin navegador) pueda
-resolver, y no se debe intentar sortear una verificación anti-bot de forma
-automatizada. Detalle y próximos pasos en README → "Limitación conocida".
+       La cookie expira (no se determinó su duración exacta — se observó
+       viva por al menos ~5 minutos en pruebas). Alguien debe refrescarla
+       manualmente cada cierto tiempo (ver README → "Cómo refrescar la
+       cookie de DGASAT"). Si la cookie falta o expiró, el script NO falla:
+       vuelve al comportamiento honesto de v9 (sin_telemetria) para las
+       estaciones sin dato de DGASAT.
+
+       IMPORTANTE: este script nunca intenta iniciar sesión ni resolver
+       reCAPTCHA por su cuenta. Solo reutiliza una sesión que un humano ya
+       abrió.
 """
-import os, sys, json
+import os, re, sys, json
 from datetime import datetime, timezone, timedelta
 import requests
+from bs4 import BeautifulSoup
 
 VIPNET_URL = "https://vipnet.mop.gob.cl/v1/vipnet/estaciones/valor"
 HEADERS = {
@@ -41,13 +44,13 @@ HEADERS = {
     "Accept-Language": "es-ES,es;q=0.9",
 }
 
-# Mapeo de estaciones SATH → código DGA oficial.
+# Mapeo de estaciones SATH → código DGA oficial (índice VipNet — solo metadata).
 # NOTA v9: los códigos "proxy" heredados de v8 (rinihue/mamalona/panguipulli/
 # riobueno con códigos distintos al oficial) también carecían de caudal real
 # en VipNet — se verificó que ESE endpoint no tiene caudal para ningún
 # código, sea el oficial o el proxy. Se mantienen documentados por si en el
-# futuro se conecta una fuente que sí sirva esos códigos, pero ya no se
-# presentan como "ok" con datos falsos.
+# futuro se conecta una fuente que sí sirva esos códigos vía VipNet, pero ya
+# no se presentan como "ok" con datos falsos.
 SATH_STATIONS = {
     "10200001": "corral",
     "10133000": "lacpicada",
@@ -63,6 +66,28 @@ SATH_STATIONS = {
     "10411002": "laslomas",
     "10351001": "tegualda",
 }
+
+# Códigos OFICIALES de la Red Hidrométrica DGA (sin proxies) — usados solo
+# contra DGASAT, que es la fuente autoritativa y no necesita sustitutos
+# geográficos. Fuente: patch_sath.py (STNS), verificados contra el reporte
+# de alertas DGASAT.
+DGASAT_STATIONS = {
+    "antihue":     "10122002",
+    "rinihue":     "10111001",
+    "mamalona":    "10113003",
+    "valdivia":    "10134001",
+    "corral":      "10200001",
+    "lacpicada":   "10133000",
+    "laslomas":    "10411002",
+    "tegualda":    "10351001",
+    "panguipulli": "10107003",
+    "pupunahue":   "10122003",
+    "pilmaiquen":  "10328001",
+    "launion":     "10313001",
+    "riobueno":    "10311001",
+}
+DGASAT_REP_URL = "https://snia.mop.gob.cl/dgasat/pages/dgasat_rep3/dgasat_rep3.jsp"
+DGASAT_MAX_PAG = 5
 
 SATH_META = {
     "antihue":     {"nombre":"Rio Calle Calle En Antilhue",                    "cuenca":"Calle-Calle", "lat":-39.85,"lon":-73.10},
@@ -206,12 +231,108 @@ def extract_value(item):
     return None, fec, var
 
 
+def fetch_dgasat_alertas(cookie):
+    """Intenta leer niveles/caudales REALES desde el reporte de alertas de
+    DGASAT (Red Hidrométrica DGA), reutilizando una cookie de sesión ya
+    autenticada por un humano (secret DGASAT_SESSION_COOKIE).
+
+    No hace login. No resuelve ni intenta sortear reCAPTCHA. Si la cookie
+    falta, expiró, o el parseo falla para una estación, esa estación
+    simplemente no aparece en el resultado — el llamador debe seguir el
+    camino honesto de "sin_telemetria" para lo que falte. Nunca lanza para
+    no interrumpir el resto del pipeline.
+
+    Formato observado del reporte (texto plano por celda, vía
+    BeautifulSoup.get_text): por cada estación aparecen, en líneas
+    sucesivas, el código ("CODIGO-DV"), el nombre, luego pares
+    [nivel, caudal] por cada hora con dato (las horas sin dato simplemente
+    no aparecen — no hay relleno), y finalmente 4 valores de umbral
+    (amarillo nivel, amarillo caudal, rojo nivel, rojo caudal). Se toma el
+    ÚLTIMO par [nivel, caudal] antes de los 4 umbrales como la lectura más
+    reciente disponible.
+    """
+    found = {}
+    pending_codes = set(DGASAT_STATIONS.values())
+
+    try:
+        for pag in range(1, DGASAT_MAX_PAG + 1):
+            if not pending_codes:
+                break
+            headers = {
+                "User-Agent": HEADERS["User-Agent"],
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "es-ES,es;q=0.9",
+                "Cookie": cookie,
+            }
+            url = (f"{DGASAT_REP_URL}?region=0&rpag=%2Fdgasat%2Fpages%2Fdgasat_param"
+                   f"%2Fdgasat_param.jsp%3Fparam%3D2&pag={pag}&hidden=dga")
+            r = requests.get(url, headers=headers, timeout=25)
+            if r.status_code != 200:
+                print(f"  [DGASAT] pag={pag} status={r.status_code} — cookie probablemente vencida")
+                break
+            body = r.text
+            if "Error 500" in body[:300] or "NullPointerException" in body[:300]:
+                print(f"  [DGASAT] pag={pag} → sesión vencida (Error 500)")
+                break
+
+            soup = BeautifulSoup(body, "lxml")
+            text = soup.get_text(separator="\n")
+            lines = [l.strip() for l in text.split("\n") if l.strip()]
+
+            i = 0
+            while i < len(lines):
+                line = lines[i]
+                # Buscar si esta línea empieza con alguno de los códigos oficiales pendientes
+                matched_cod = None
+                for cod, stn_id in DGASAT_STATIONS.items():
+                    if stn_id in pending_codes and line.startswith(cod + "-"):
+                        matched_cod = cod
+                        break
+                if matched_cod:
+                    stn_id = DGASAT_STATIONS[matched_cod]
+                    nums = []
+                    j = i + 2  # saltar línea de código y línea de nombre
+                    while j < len(lines) and len(nums) < 24 and re.match(r"^-?\d+(\.\d+)?$", lines[j]):
+                        try:
+                            nums.append(float(lines[j]))
+                        except ValueError:
+                            break
+                        j += 1
+                    datos = nums[:-4] if len(nums) >= 6 else []
+                    if len(datos) >= 2 and len(datos) % 2 == 0:
+                        nivel, caudal = datos[-2], datos[-1]
+                        found[stn_id] = {
+                            "codigo": matched_cod,
+                            "nivel_m": round(nivel, 3),
+                            "q_m3s": round(caudal, 3),
+                        }
+                        pending_codes.discard(stn_id)
+                    i = max(j, i + 1)
+                else:
+                    i += 1
+    except Exception as e:
+        print(f"  [DGASAT] error inesperado: {e}")
+
+    return found
+
+
 def main():
     now_utc = datetime.now(timezone.utc)
     now_cl  = now_utc.astimezone(timezone(timedelta(hours=-4)))
     print("="*65)
-    print(f"SATH DGA Bridge v9 — {now_cl.strftime('%Y-%m-%d %H:%M')} CL")
+    print(f"SATH DGA Bridge v10 — {now_cl.strftime('%Y-%m-%d %H:%M')} CL")
     print("="*65)
+
+    # ── 0/3: DGASAT (real, opcional, requiere cookie de sesión) ───────────
+    dgasat_cookie = os.environ.get("DGASAT_SESSION_COOKIE", "").strip()
+    dgasat_data = {}
+    if dgasat_cookie:
+        print("\n[0/3] DGASAT_SESSION_COOKIE presente — intentando lectura real de "
+              "la Red Hidrométrica DGA...")
+        dgasat_data = fetch_dgasat_alertas(dgasat_cookie)
+        print(f"  [DGASAT] {len(dgasat_data)}/{len(DGASAT_STATIONS)} estaciones con dato real")
+    else:
+        print("\n[0/3] Sin DGASAT_SESSION_COOKIE — se omite DGASAT, solo VipNet (meteo, sin caudal)")
 
     all_records = {}
     total_raw   = 0
@@ -255,8 +376,33 @@ def main():
 
     print(f"\n[2/3] Parseando estaciones...")
     results = {}
+
+    # Prioridad 1: dato real de DGASAT
+    for stn_id, dat in dgasat_data.items():
+        meta = SATH_META[stn_id]
+        results[stn_id] = {
+            "codigo":     dat["codigo"],
+            "nombre":     meta["nombre"],
+            "cuenca":     meta["cuenca"],
+            "lat":        meta["lat"],
+            "lon":        meta["lon"],
+            "q_m3s":      dat["q_m3s"],
+            "pp_mm":      None,
+            "nivel_m":    dat["nivel_m"],
+            "fecha_dato": "última lectura disponible en reporte de alertas DGASAT "
+                           f"(consultado {now_cl.strftime('%Y-%m-%d %H:%M')} CL)",
+            "variable":   "Nivel/Caudal — Red Hidrométrica DGA",
+            "es_proxy":   False,
+            "fuente":     "dgasat",
+            "estado":     "ok",
+        }
+        print(f"  [✓] {stn_id:<12} Q={dat['q_m3s']} nivel={dat['nivel_m']}m [DGASAT real]")
+
+    # Prioridad 2: índice VipNet (hoy sin caudal real, ver limitación conocida)
     for cod, item in all_records.items():
         stn_id = SATH_STATIONS[cod]
+        if stn_id in results:
+            continue  # ya resuelto con dato real de DGASAT
         meta   = SATH_META[stn_id]
         val, fec, var = extract_value(item)
         es_proxy = "[proxy]" in meta["nombre"]
@@ -272,16 +418,17 @@ def main():
             "fecha_dato": fec,
             "variable":   var,
             "es_proxy":   es_proxy,
+            "fuente":     "vipnet",
             "estado":     "ok" if val is not None else "sin_telemetria",
         }
         icon = "✓" if val is not None else "~"
         proxy_tag = " [proxy]" if es_proxy else ""
         print(f"  [{icon}] {stn_id:<12} Q={val} var={var[:25]}{proxy_tag}")
 
-    # Estaciones que ni siquiera aparecen en el índice VipNet
+    # Estaciones sin dato de DGASAT ni de VipNet
     for stn_id, meta in SATH_META.items():
         if stn_id not in results:
-            cod = next(c for c,s in SATH_STATIONS.items() if s==stn_id)
+            cod = next((c for c,s in SATH_STATIONS.items() if s==stn_id), None)
             results[stn_id] = {
                 "codigo":     cod,
                 "nombre":     meta["nombre"],
@@ -294,30 +441,35 @@ def main():
                 "fecha_dato": None,
                 "variable":   "—",
                 "es_proxy":   False,
+                "fuente":     None,
                 "estado":     "sin_telemetria",
             }
-            print(f"  [—] {stn_id:<12} sin telemetría en índice VipNet")
+            print(f"  [—] {stn_id:<12} sin telemetría (ni DGASAT ni VipNet)")
 
     n_ok = sum(1 for v in results.values() if v["estado"] == "ok")
+    n_ok_dgasat = sum(1 for v in results.values() if v.get("fuente") == "dgasat")
 
     output = {
         "meta": {
             "timestamp_utc":      now_utc.isoformat(),
             "timestamp_chile":    now_cl.isoformat(),
-            "fuente":             "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
+            "fuente":             "DGASAT (Red Hidrométrica DGA) + VipNet (DGA/MOP)",
             "aviso":              "Datos provisorios sujetos a revisión — DGA/MOP. "
                                   "Estaciones [proxy]: cobertura geográfica aproximada.",
             "limitacion_conocida": (
-                "VipNet (VHN) es una red meteorológica: no expone caudal ni nivel de río "
-                "para ninguna estación, por lo que 'sin_telemetria' aquí refleja la "
-                "realidad y no un error transitorio. La fuente autoritativa de caudal "
-                "real es DGASAT/Hidrolínea (snia.mop.gob.cl/dgasat), cuyo login está "
-                "protegido con reCAPTCHA y no puede resolverse desde este script sin "
-                "intervención humana. Ver README → 'Limitación conocida' para el plan."
+                "VipNet (VHN) es una red meteorológica: no expone caudal ni nivel de río. "
+                "La fuente autoritativa de caudal real es DGASAT/Hidrolínea "
+                "(snia.mop.gob.cl/dgasat), cuyo login está protegido con reCAPTCHA — este "
+                "script nunca resuelve login ni reCAPTCHA por su cuenta. En su lugar, "
+                "reutiliza una cookie de sesión ya autenticada por un humano "
+                "(secret DGASAT_SESSION_COOKIE), que debe refrescarse manualmente cada "
+                "cierto tiempo. Ver README → 'Cómo refrescar la cookie de DGASAT'."
             ),
+            "dgasat_cookie_presente": bool(dgasat_cookie),
+            "dgasat_estaciones_ok":   n_ok_dgasat,
             "fetch_ok":           ok,
             "n_estaciones_ok":    n_ok,
-            "n_estaciones":       12,
+            "n_estaciones":       len(SATH_META),
             "n_raw_registros":    total_raw,
             "prox_actualizacion": (now_utc + timedelta(hours=1)).isoformat(),
         },
@@ -328,7 +480,8 @@ def main():
     os.makedirs("docs", exist_ok=True)
     with open(OUTPUT, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
-    print(f"  ✓ {os.path.getsize(OUTPUT):,} bytes · {n_ok}/12 con dato real")
+    print(f"  ✓ {os.path.getsize(OUTPUT):,} bytes · {n_ok}/{len(SATH_META)} con dato "
+          f"({n_ok_dgasat} de DGASAT real)")
     return 0
 
 

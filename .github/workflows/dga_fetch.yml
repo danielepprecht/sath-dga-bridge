@@ -33,6 +33,7 @@ jobs:
         env:
           DGA_USER: ${{ secrets.DGA_USER }}
           DGA_PASS: ${{ secrets.DGA_PASS }}
+          DGASAT_SESSION_COOKIE: ${{ secrets.DGASAT_SESSION_COOKIE }}
         run: python fetch_dga.py
 
       - name: Patch SATH dashboard
@@ -41,7 +42,7 @@ jobs:
       - name: Commit updated files
         run: |
           git config --global user.email "sath-bridge[bot]@github.com"
-          git config --global user.name  "SATH DGA Bridge"
+          git config --global user.name "SATH DGA Bridge"
           git add docs/dga_losrios.json docs/SATH_v5.html 2>/dev/null || true
           if git diff --staged --quiet; then
             echo "Sin cambios"

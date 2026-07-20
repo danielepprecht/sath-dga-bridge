@@ -712,69 +712,42 @@ function alertaTxt(nr){
 
 // Carga dinámica de estaciones VipNet por región
 var regionStations={};
-// Bounding boxes geograficos por region (filtro lat/lon VipNet)
-const REGION_BBOX={
-  15:{s:-18.5,n:-17.3,w:-71.0,e:-68.5},
-  1: {s:-20.5,n:-18.5,w:-70.2,e:-68.0},
-  2: {s:-26.5,n:-20.5,w:-70.5,e:-65.0},
-  3: {s:-29.1,n:-26.5,w:-72.0,e:-67.0},
-  4: {s:-32.3,n:-29.0,w:-72.0,e:-69.5},
-  5: {s:-33.8,n:-32.0,w:-72.0,e:-69.8},
-  13:{s:-34.4,n:-33.0,w:-71.5,e:-69.6},
-  6: {s:-35.1,n:-33.5,w:-72.0,e:-70.0},
-  7: {s:-36.6,n:-34.9,w:-72.5,e:-70.0},
-  16:{s:-37.5,n:-36.4,w:-73.0,e:-70.5},
-  8: {s:-38.6,n:-36.4,w:-73.5,e:-70.5},
-  9: {s:-39.5,n:-37.4,w:-73.6,e:-70.8},
-  14:{s:-40.5,n:-39.4,w:-73.7,e:-71.5},
-  10:{s:-44.0,n:-40.4,w:-75.0,e:-71.5},
-  11:{s:-49.0,n:-43.9,w:-75.6,e:-70.0},
-  12:{s:-55.9,n:-48.9,w:-76.0,e:-65.0}
-};
-let _vipnetCache=null;
-async function fetchVipNet(){
-  if(_vipnetCache)return _vipnetCache;
-  const now=new Date();
-  const pad=n=>String(n).padStart(2,'0');
-  const payload={tipoEstacion:0,mapStatistic:4,currentTabIndex:0,
-    fetchHour:now.getHours(),
-    fetchDay:now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate()),
-    hoursRange:3};
+// Estaciones por región — leídas desde stations_chile.json (generado por fetch_dga.py)
+let _stationsChile = null;
+async function loadStationsChile(){
+  if(_stationsChile) return _stationsChile;
   try{
-    const r=await fetch('https://vipnet.mop.gob.cl/v1/vipnet/estaciones/valor',
-      {method:'POST',headers:{'Content-Type':'application/json',
-       'Origin':'https://vipnet.mop.gob.cl'},body:JSON.stringify(payload)});
-    if(!r.ok)return [];
-    _vipnetCache=await r.json();
-    return _vipnetCache;
-  }catch(e){console.warn('VipNet',e);return [];}
+    const r = await fetch('./stations_chile.json?t='+Date.now());
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    _stationsChile = await r.json();
+    return _stationsChile;
+  }catch(e){
+    console.warn('stations_chile.json no disponible:',e);
+    return {};
+  }
 }
 async function loadRegionStations(regNum){
-  const bbox=REGION_BBOX[regNum];
-  if(!bbox)return [];
-  const data=await fetchVipNet();
-  if(!data||!data.length)return [];
-  const stns=data.filter(function(d){
-    if(!d)return false;
-    const lat=parseFloat(d.latitud),lon=parseFloat(d.longitud);
-    if(isNaN(lat)||isNaN(lon))return false;
-    return lat>=bbox.s&&lat<=bbox.n&&lon>=bbox.w&&lon<=bbox.e;
-  }).map(function(d){
-    const cod=String(d.codigoEstacion||'').split('-')[0];
-    const nm=String(d.nombre||cod).split(' ').map(
-      w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
-    return{id:'r'+regNum+'_'+cod,cod:cod,name:nm,
-      lat:parseFloat(d.latitud),lon:parseFloat(d.longitud),
-      cuenca:'Region '+regNum,tipo:'Fluviometrica',access:'dga',value:d.value};
-  }).filter(s=>s.cod&&s.lat&&s.lon);
-  regionStations[regNum]=stns;
+  const data = await loadStationsChile();
+  const stns = (data[String(regNum)] || data[regNum] || []).map(function(s){
+    return {
+      id: 'r'+regNum+'_'+s.cod,
+      cod: s.cod,
+      name: s.name,
+      lat: s.lat,
+      lon: s.lon,
+      cuenca: 'Region '+regNum,
+      tipo: 'Fluviometrica',
+      access: 'dga',
+      value: s.q
+    };
+  });
+  regionStations[regNum] = stns;
   return stns;
 }
 function toTitleCase(s){
-  return s.toLowerCase().replace(/(?:^|\s|-)./g,c=>c.toUpperCase());
+  return s.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
 }
 
-// Cambiar región activa
 async function setRegion(regNum){
   activeRegion=parseInt(regNum);
   activeZone=REGION_ZONA[activeRegion]||'pluvial';

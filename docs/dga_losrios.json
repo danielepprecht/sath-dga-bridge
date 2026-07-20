@@ -1,15 +1,17 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-20T20:22:30.826627+00:00",
-    "timestamp_chile": "2026-07-20T16:22:30.826627-04:00",
-    "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
+    "timestamp_utc": "2026-07-20T22:01:12.200823+00:00",
+    "timestamp_chile": "2026-07-20T18:01:12.200823-04:00",
+    "fuente": "DGASAT (Red Hidrométrica DGA) + VipNet (DGA/MOP)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
-    "limitacion_conocida": "VipNet (VHN) es una red meteorológica: no expone caudal ni nivel de río para ninguna estación, por lo que 'sin_telemetria' aquí refleja la realidad y no un error transitorio. La fuente autoritativa de caudal real es DGASAT/Hidrolínea (snia.mop.gob.cl/dgasat), cuyo login está protegido con reCAPTCHA y no puede resolverse desde este script sin intervención humana. Ver README → 'Limitación conocida' para el plan.",
+    "limitacion_conocida": "VipNet (VHN) es una red meteorológica: no expone caudal ni nivel de río. La fuente autoritativa de caudal real es DGASAT/Hidrolínea (snia.mop.gob.cl/dgasat), cuyo login está protegido con reCAPTCHA — este script nunca resuelve login ni reCAPTCHA por su cuenta. En su lugar, reutiliza una cookie de sesión ya autenticada por un humano (secret DGASAT_SESSION_COOKIE), que debe refrescarse manualmente cada cierto tiempo. Ver README → 'Cómo refrescar la cookie de DGASAT'.",
+    "dgasat_cookie_presente": false,
+    "dgasat_estaciones_ok": 0,
     "fetch_ok": true,
     "n_estaciones_ok": 0,
-    "n_estaciones": 12,
+    "n_estaciones": 13,
     "n_raw_registros": 1026,
-    "prox_actualizacion": "2026-07-20T21:22:30.826627+00:00"
+    "prox_actualizacion": "2026-07-20T23:01:12.200823+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -24,6 +26,7 @@
       "fecha_dato": null,
       "variable": "RIO PILMAIQUEN EN SAN PABLO",
       "es_proxy": false,
+      "fuente": "vipnet",
       "estado": "sin_telemetria"
     },
     "launion": {
@@ -38,6 +41,7 @@
       "fecha_dato": null,
       "variable": "RIO LLOLLELHUE EN LA UNION",
       "es_proxy": false,
+      "fuente": "vipnet",
       "estado": "sin_telemetria"
     },
     "lacpicada": {
@@ -52,6 +56,7 @@
       "fecha_dato": null,
       "variable": "RIO LEUFUCADE EN PURULON",
       "es_proxy": false,
+      "fuente": "vipnet",
       "estado": "sin_telemetria"
     },
     "pupunahue": {
@@ -66,6 +71,7 @@
       "fecha_dato": null,
       "variable": "RIO CALLE CALLE EN PUPUNAHUE",
       "es_proxy": false,
+      "fuente": "vipnet",
       "estado": "sin_telemetria"
     },
     "riobueno": {
@@ -80,6 +86,7 @@
       "fecha_dato": null,
       "variable": "ESCUELA RURAL CRUCERO",
       "es_proxy": true,
+      "fuente": "vipnet",
       "estado": "sin_telemetria"
     },
     "panguipulli": {
@@ -94,6 +101,7 @@
       "fecha_dato": null,
       "variable": "FUTRONO SECTOR LAS QUEMAS",
       "es_proxy": true,
+      "fuente": "vipnet",
       "estado": "sin_telemetria"
     },
     "corral": {
@@ -108,6 +116,7 @@
       "fecha_dato": null,
       "variable": "METEOROLOGICA CORRAL",
       "es_proxy": false,
+      "fuente": "vipnet",
       "estado": "sin_telemetria"
     },
     "mamalona": {
@@ -122,6 +131,7 @@
       "fecha_dato": null,
       "variable": "FUNDO SICHAHUE (Meteo)",
       "es_proxy": true,
+      "fuente": "vipnet",
       "estado": "sin_telemetria"
     },
     "rinihue": {
@@ -136,6 +146,7 @@
       "fecha_dato": null,
       "variable": "LAGO RIÑIHUE ESTACION DE CONTROL",
       "es_proxy": true,
+      "fuente": "vipnet",
       "estado": "sin_telemetria"
     },
     "antihue": {
@@ -150,6 +161,7 @@
       "fecha_dato": null,
       "variable": "—",
       "es_proxy": false,
+      "fuente": null,
       "estado": "sin_telemetria"
     },
     "valdivia": {
@@ -164,6 +176,7 @@
       "fecha_dato": null,
       "variable": "—",
       "es_proxy": false,
+      "fuente": null,
       "estado": "sin_telemetria"
     },
     "laslomas": {
@@ -178,6 +191,7 @@
       "fecha_dato": null,
       "variable": "—",
       "es_proxy": false,
+      "fuente": null,
       "estado": "sin_telemetria"
     },
     "tegualda": {
@@ -192,6 +206,7 @@
       "fecha_dato": null,
       "variable": "—",
       "es_proxy": false,
+      "fuente": null,
       "estado": "sin_telemetria"
     }
   }

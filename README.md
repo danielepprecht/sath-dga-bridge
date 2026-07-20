@@ -4,10 +4,21 @@ Puente automático entre la red hidrométrica DGA (SNIA/MOP) y el dashboard
 SATH. GitHub Actions extrae datos cada hora y los publica en GitHub Pages
 como JSON público que el SATH lee directamente.
 
-## ⚠️ Limitación conocida (2026-07-20)
+## ✅ Actualización v10 (2026-07-20) — lectura real vía DGASAT
 
-**El bridge actual (`fetch_dga.py` v9) NO tiene caudal/nivel de río real
-para ninguna de las 12 estaciones.** Diagnóstico completo:
+El bridge ahora puede publicar **caudal y nivel reales** de la Red
+Hidrométrica DGA (DGASAT/Hidrolínea), no solo el índice meteorológico de
+VipNet. Esto se logra sin automatizar el login (que exige reCAPTCHA):
+un humano inicia sesión una vez en el navegador y copia la cookie de
+sesión a un secret de GitHub. El script la reutiliza cada hora hasta
+que expire; mientras tanto, sigue funcionando el respaldo honesto v9
+(`sin_telemetria`) para lo que falte. Ver **"Cómo refrescar la cookie
+de DGASAT"** más abajo para activarlo.
+
+## ⚠️ Limitación conocida — origen (2026-07-20)
+
+**Antes de v10, el bridge (`fetch_dga.py` v9) NO tenía caudal/nivel de
+río real para ninguna de las 12 estaciones.** Diagnóstico completo:
 
 1. El script consulta VipNet (`vipnet.mop.gob.cl`, el "VHN — Visualizador
    Hidrométrico Nacional"). VipNet es una red **meteorológica**
@@ -54,10 +65,11 @@ son ejecutables por un agente):
 ## Arquitectura
 
 ```
-DGA DGASAT (snia.mop.gob.cl)  ← bloqueado por reCAPTCHA, ver limitación arriba
+DGA DGASAT (snia.mop.gob.cl)  ← login con reCAPTCHA (manual, 1 vez)
+        ↓  cookie de sesión → secret DGASAT_SESSION_COOKIE
         ↓  cada 1h (GitHub Actions)
-  fetch_dga.py   ←  DGA_USER / DGA_PASS (GitHub Secrets, no usados actualmente)
-        ↓  (fuente real hoy: VipNet, solo metadata/meteo — sin caudal)
+  fetch_dga.py   ←  DGASAT_SESSION_COOKIE (real) + VipNet (respaldo/meteo)
+        ↓  caudal/nivel real si la cookie está vigente, si no: sin_telemetria honesto
   docs/dga_losrios.json
         ↓  GitHub Pages (HTTPS público)
   SATH v5 Dashboard
@@ -65,7 +77,7 @@ DGA DGASAT (snia.mop.gob.cl)  ← bloqueado por reCAPTCHA, ver limitación arrib
   Semáforo de alerta
 ```
 
-## Setup — 5 pasos
+## Setup — 7 pasos
 
 ### 1. Crear el repositorio en GitHub
 
@@ -112,17 +124,54 @@ En el repositorio → **Settings → Secrets and variables → Actions → New s
 > protegido con reCAPTCHA y no es automatizable sin una credencial de API
 > institucional.
 
-### 4. Verificar primera ejecución
+### 4. (Opcional pero recomendado) Activar datos reales de DGASAT
+
+Sin este paso, el bridge sigue funcionando pero publica
+`sin_telemetria` para las 12 estaciones (comportamiento v9). Con este
+paso, publica caudal y nivel reales mientras la cookie esté vigente.
+
+**Cómo refrescar la cookie de DGASAT:**
+
+1. Inicia sesión en <https://snia.mop.gob.cl/dgasat> con tu usuario y
+   contraseña (resuelve el reCAPTCHA normalmente, en el navegador).
+2. Con la sesión ya abierta, abre las **DevTools** del navegador
+   (F12 o clic derecho → Inspeccionar) → pestaña **Network/Red**.
+3. Navega a cualquier página dentro de DGASAT (por ejemplo, el reporte
+   de alertas) para generar una petición.
+4. Haz clic en esa petición → pestaña **Headers/Encabezados** → busca
+   el encabezado de request **`Cookie`** → copia su valor completo
+   (una cadena larga tipo `JSESSIONID=...; otracosa=...`).
+5. En el repositorio → **Settings → Secrets and variables → Actions →
+   New secret**:
+
+   | Secret name | Valor |
+   |---|---|
+   | `DGASAT_SESSION_COOKIE` | El valor completo copiado en el paso 4 |
+
+6. Guarda. La próxima ejecución del workflow (hasta 1h después, o
+   manual vía Actions → Run workflow) ya intentará usarla.
+
+**Importante — la cookie expira:** no se determinó su duración exacta
+(se verificó viva por al menos ~5 minutos en pruebas manuales; podría
+durar más). Cuando expire, el script simplemente vuelve al
+comportamiento honesto v9 (`sin_telemetria`) para las estaciones sin
+dato — no falla ni rompe el workflow. Para mantener datos reales de
+forma sostenida, alguien debe repetir estos 6 pasos periódicamente
+(ideal: una vez al día, o cuando `dgasat_estaciones_ok` en el JSON de
+salida baje a 0). Esto es un mecanismo puente mientras se gestiona el
+acceso institucional (ver solicitud DIRH incluida en este repo/entrega).
+
+### 6. Verificar primera ejecución
 
 En → **Actions → SATH — DGA Data Bridge → Run workflow**
 
 El workflow tarda ~2 minutos. Luego verifica:
-- `docs/dga_losrios.json` actualizado (hoy: metadata correcta, `estado`
-  honesto por estación — no esperar `q_m3s` real hasta resolver la
-  limitación de DGASAT)
+- `docs/dga_losrios.json` actualizado — revisa `meta.dgasat_estaciones_ok`:
+  si es > 0, ya hay caudal/nivel real de DGASAT; si es 0, revisa que el
+  secret `DGASAT_SESSION_COOKIE` esté vigente (paso 4)
 - Status page: `https://TU_USUARIO.github.io/sath-dga-bridge/`
 
-### 5. Conectar SATH al bridge
+### 7. Conectar SATH al bridge
 
 En `SATH_v5.html`, busca `DGA_BRIDGE_URL` y reemplaza con tu URL:
 

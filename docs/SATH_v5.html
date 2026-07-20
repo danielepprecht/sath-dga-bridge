@@ -145,6 +145,48 @@ button{cursor:pointer}button:hover{background:#f8fafc}
     </div>
   </div>
   <div class="ctrl">
+    <label style="font-size:10px;color:#64748b;font-weight:700;letter-spacing:.5px">REGIÓN</label>
+    <select id="sel-region" onchange="setRegion(this.value)"
+      style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;
+             padding:3px 8px;font-size:11px;cursor:pointer;max-width:200px">
+      <optgroup label="Zona Aluvial">
+        <option value="15">XV — Arica y Parinacota</option>
+        <option value="1">I — Tarapacá</option>
+        <option value="2">II — Antofagasta</option>
+      </optgroup>
+      <optgroup label="Zona Semiárida">
+        <option value="3">III — Atacama</option>
+        <option value="4">IV — Coquimbo</option>
+      </optgroup>
+      <optgroup label="Zona Mediterránea">
+        <option value="5">V — Valparaíso</option>
+        <option value="13">RM — Metropolitana</option>
+        <option value="6">VI — O'Higgins</option>
+        <option value="7">VII — Maule</option>
+      </optgroup>
+      <optgroup label="Zona Mixta">
+        <option value="16">XVI — Ñuble</option>
+        <option value="8">VIII — Biobío</option>
+        <option value="9">IX — Araucanía</option>
+      </optgroup>
+      <optgroup label="Zona Pluvial">
+        <option value="14" selected>XIV — Los Ríos</option>
+        <option value="10">X — Los Lagos</option>
+      </optgroup>
+      <optgroup label="Zona Austral">
+        <option value="11">XI — Aysén</option>
+        <option value="12">XII — Magallanes</option>
+      </optgroup>
+    </select>
+    <span id="zone-badge" style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;
+      border:1px solid #0891b2;background:#e0f2fe;color:#0891b2;white-space:nowrap">
+      Zona Pluvial</span>
+    <select id="sel-region-stn" style="display:none;background:#1e293b;color:#e2e8f0;
+      border:1px solid #334155;border-radius:6px;padding:3px 8px;font-size:11px;
+      cursor:pointer;max-width:260px" onchange="onRegionStnChange(this)">
+      <option>Cargando...</option>
+    </select>
+    <span id="region-loading" style="display:none;font-size:10px;color:#60a5fa">⟳ Cargando...</span>
     <select id="sel-stn">
       <optgroup label="── Cuenca Valdivia / Calle-Calle ──">
         <option value="antihue">Río Calle-Calle en Antilhue</option>
@@ -339,50 +381,6 @@ button{cursor:pointer}button:hover{background:#f8fafc}
         style="padding:3px 9px;font-size:10px;background:#1565c0;color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px">
         <i class="ti ti-map-2"></i> Ver cuenca
       </button>
-    </div>
-    
-    <!-- SATH Chile: selector de region -->
-    <div id="region-panel" style="background:#0f172a;border-bottom:1px solid #1e3a5f;padding:8px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span style="font-size:10px;color:#64748b;font-weight:700;letter-spacing:1px">REGION</span>
-      <select id="sel-region" onchange="setRegion(this.value)" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;min-width:220px">
-        <optgroup label="Zona Aluvial">
-          <option value="15">XV - Arica y Parinacota</option>
-          <option value="1">I - Tarapaca</option>
-          <option value="2">II - Antofagasta</option>
-        </optgroup>
-        <optgroup label="Zona Semiarida">
-          <option value="3">III - Atacama</option>
-          <option value="4">IV - Coquimbo</option>
-        </optgroup>
-        <optgroup label="Zona Mediterranea">
-          <option value="5">V - Valparaiso</option>
-          <option value="13">RM - Metropolitana</option>
-          <option value="6">VI - O Higgins</option>
-          <option value="7">VII - Maule</option>
-        </optgroup>
-        <optgroup label="Zona Mixta Pluvio-Nival">
-          <option value="16">XVI - Nuble</option>
-          <option value="8">VIII - Biobio</option>
-          <option value="9">IX - Araucania</option>
-        </optgroup>
-        <optgroup label="Zona Pluvial">
-          <option value="14" selected>XIV - Los Rios</option>
-          <option value="10">X - Los Lagos</option>
-        </optgroup>
-        <optgroup label="Zona Austral">
-          <option value="11">XI - Aysen</option>
-          <option value="12">XII - Magallanes</option>
-        </optgroup>
-      </select>
-      <span id="zone-badge" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;border:1px solid #0891b2;background:#e0f2fe;color:#0891b2">Zona Pluvial - Sur</span>
-      <span id="zone-desc" style="font-size:9px;color:#64748b;max-width:300px">Cuencas lacustres. Saturacion suelo relevante.</span>
-      <span id="region-loading" style="display:none;font-size:10px;color:#60a5fa">&#8987; Cargando estaciones...</span>
-    </div>
-    <div id="region-stn-panel" style="display:none;background:#0a1628;padding:6px 16px;border-bottom:1px solid #1e3a5f">
-      <span style="font-size:10px;color:#64748b;margin-right:8px">ESTACION:</span>
-      <select id="sel-region-stn" onchange="onRegionStnChange(this)" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 10px;font-size:11px;min-width:380px">
-        <option>Selecciona una region primero</option>
-      </select>
     </div>
     <div class="stn-tabs" id="stn-tabs">
       <!-- filled by JS -->
@@ -768,18 +766,23 @@ async function setRegion(regNum){
   // Actualizar descripción zona
   const zd=document.getElementById('zone-desc');
   if(zd)zd.textContent=cal.desc;
+  // Mostrar/ocultar selectores según región
+  var isLosRios=(activeRegion===14||activeRegion===10);
+  var selStn=document.getElementById('sel-stn');
+  var selRegStn=document.getElementById('sel-region-stn');
+  var stabs=document.getElementById('stn-tabs');
+  if(selStn)selStn.style.display=isLosRios?'':'none';
+  if(selRegStn)selRegStn.style.display=isLosRios?'none':'inline-block';
+  if(stabs)stabs.style.display=isLosRios?'flex':'none';
+  if(isLosRios){activeStn='antihue';fetchAllOM();return;}
   // Cargar estaciones VipNet de la región
   const loadingEl=document.getElementById('region-loading');
-  if(loadingEl)loadingEl.style.display='flex';
+  if(loadingEl)loadingEl.style.display='inline';
   let stns=regionStations[activeRegion];
   if(!stns){stns=await loadRegionStations(activeRegion);}
   if(loadingEl)loadingEl.style.display='none';
-  // Reconstruir dropdown de estaciones
   buildRegionStationSel(stns||[]);
-  // Si hay estaciones, seleccionar la primera
-  if(stns&&stns.length>0){
-    setRegionStation(stns[0]);
-  }
+  if(stns&&stns.length>0){setRegionStation(stns[0]);}
 }
 
 function buildRegionStationSel(stns){

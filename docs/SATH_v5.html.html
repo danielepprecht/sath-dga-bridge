@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#127754;</text></svg>">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SATH — Sistema de Alerta Temprana Hidrológico</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
@@ -338,6 +339,50 @@ button{cursor:pointer}button:hover{background:#f8fafc}
         style="padding:3px 9px;font-size:10px;background:#1565c0;color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px">
         <i class="ti ti-map-2"></i> Ver cuenca
       </button>
+    </div>
+    
+    <!-- SATH Chile: selector de region -->
+    <div id="region-panel" style="background:#0f172a;border-bottom:1px solid #1e3a5f;padding:8px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:10px;color:#64748b;font-weight:700;letter-spacing:1px">REGION</span>
+      <select id="sel-region" onchange="setRegion(this.value)" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;min-width:220px">
+        <optgroup label="Zona Aluvial">
+          <option value="15">XV - Arica y Parinacota</option>
+          <option value="1">I - Tarapaca</option>
+          <option value="2">II - Antofagasta</option>
+        </optgroup>
+        <optgroup label="Zona Semiarida">
+          <option value="3">III - Atacama</option>
+          <option value="4">IV - Coquimbo</option>
+        </optgroup>
+        <optgroup label="Zona Mediterranea">
+          <option value="5">V - Valparaiso</option>
+          <option value="13">RM - Metropolitana</option>
+          <option value="6">VI - O Higgins</option>
+          <option value="7">VII - Maule</option>
+        </optgroup>
+        <optgroup label="Zona Mixta Pluvio-Nival">
+          <option value="16">XVI - Nuble</option>
+          <option value="8">VIII - Biobio</option>
+          <option value="9">IX - Araucania</option>
+        </optgroup>
+        <optgroup label="Zona Pluvial">
+          <option value="14" selected>XIV - Los Rios</option>
+          <option value="10">X - Los Lagos</option>
+        </optgroup>
+        <optgroup label="Zona Austral">
+          <option value="11">XI - Aysen</option>
+          <option value="12">XII - Magallanes</option>
+        </optgroup>
+      </select>
+      <span id="zone-badge" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;border:1px solid #0891b2;background:#e0f2fe;color:#0891b2">Zona Pluvial - Sur</span>
+      <span id="zone-desc" style="font-size:9px;color:#64748b;max-width:300px">Cuencas lacustres. Saturacion suelo relevante.</span>
+      <span id="region-loading" style="display:none;font-size:10px;color:#60a5fa">&#8987; Cargando estaciones...</span>
+    </div>
+    <div id="region-stn-panel" style="display:none;background:#0a1628;padding:6px 16px;border-bottom:1px solid #1e3a5f">
+      <span style="font-size:10px;color:#64748b;margin-right:8px">ESTACION:</span>
+      <select id="sel-region-stn" onchange="onRegionStnChange(this)" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 10px;font-size:11px;min-width:380px">
+        <option>Selecciona una region primero</option>
+      </select>
     </div>
     <div class="stn-tabs" id="stn-tabs">
       <!-- filled by JS -->
@@ -1728,6 +1773,7 @@ initCharts();
 updUI();
 startSim();
 fetchAllOM();
+
 </script>
   <div class="footer-author">
     <strong>Daniel Epprecht Valderrama</strong> · SATH — Sistema de Alerta Temprana Hidrológico · Calibrado CR2/DGA Q×PP 693 eventos · 2026

@@ -1,14 +1,15 @@
 {
   "meta": {
-    "timestamp_utc": "2026-07-20T18:05:28.041340+00:00",
-    "timestamp_chile": "2026-07-20T14:05:28.041340-04:00",
+    "timestamp_utc": "2026-07-20T18:20:14.931436+00:00",
+    "timestamp_chile": "2026-07-20T14:20:14.931436-04:00",
     "fuente": "VipNet — DGA/MOP (vipnet.mop.gob.cl)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
+    "limitacion_conocida": "VipNet (VHN) es una red meteorológica: no expone caudal ni nivel de río para ninguna estación, por lo que 'sin_telemetria' aquí refleja la realidad y no un error transitorio. La fuente autoritativa de caudal real es DGASAT/Hidrolínea (snia.mop.gob.cl/dgasat), cuyo login está protegido con reCAPTCHA y no puede resolverse desde este script sin intervención humana. Ver README → 'Limitación conocida' para el plan.",
     "fetch_ok": true,
-    "n_estaciones_ok": 9,
+    "n_estaciones_ok": 0,
     "n_estaciones": 12,
     "n_raw_registros": 1026,
-    "prox_actualizacion": "2026-07-20T19:05:28.041340+00:00"
+    "prox_actualizacion": "2026-07-20T19:20:14.931436+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -17,13 +18,13 @@
       "cuenca": "Bueno-Ranco",
       "lat": -40.18,
       "lon": -72.37,
-      "q_m3s": 0.0,
+      "q_m3s": null,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "RIO PILMAIQUEN EN SAN PABLO",
       "es_proxy": false,
-      "estado": "ok"
+      "estado": "sin_telemetria"
     },
     "launion": {
       "codigo": "10313001",
@@ -31,13 +32,13 @@
       "cuenca": "Bueno",
       "lat": -40.29,
       "lon": -73.09,
-      "q_m3s": 0.0,
+      "q_m3s": null,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "RIO LLOLLELHUE EN LA UNION",
       "es_proxy": false,
-      "estado": "ok"
+      "estado": "sin_telemetria"
     },
     "lacpicada": {
       "codigo": "10133000",
@@ -45,13 +46,13 @@
       "cuenca": "Cruces",
       "lat": -39.82,
       "lon": -73.27,
-      "q_m3s": 0.0,
+      "q_m3s": null,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "RIO LEUFUCADE EN PURULON",
       "es_proxy": false,
-      "estado": "ok"
+      "estado": "sin_telemetria"
     },
     "pupunahue": {
       "codigo": "10122003",
@@ -59,13 +60,13 @@
       "cuenca": "Calle-Calle",
       "lat": -39.72,
       "lon": -72.47,
-      "q_m3s": 0.0,
+      "q_m3s": null,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "RIO CALLE CALLE EN PUPUNAHUE",
       "es_proxy": false,
-      "estado": "ok"
+      "estado": "sin_telemetria"
     },
     "riobueno": {
       "codigo": "10327006",
@@ -73,13 +74,13 @@
       "cuenca": "Bueno",
       "lat": -40.69,
       "lon": -72.97,
-      "q_m3s": 0.0,
+      "q_m3s": null,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "ESCUELA RURAL CRUCERO",
       "es_proxy": true,
-      "estado": "ok"
+      "estado": "sin_telemetria"
     },
     "panguipulli": {
       "codigo": "10307009",
@@ -87,13 +88,13 @@
       "cuenca": "Calle-Calle",
       "lat": -39.64,
       "lon": -72.33,
-      "q_m3s": 0.0,
+      "q_m3s": null,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "FUTRONO SECTOR LAS QUEMAS",
       "es_proxy": true,
-      "estado": "ok"
+      "estado": "sin_telemetria"
     },
     "corral": {
       "codigo": "10200001",
@@ -101,13 +102,13 @@
       "cuenca": "Costero",
       "lat": -39.88,
       "lon": -73.43,
-      "q_m3s": 0.0,
+      "q_m3s": null,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "METEOROLOGICA CORRAL",
       "es_proxy": false,
-      "estado": "ok"
+      "estado": "sin_telemetria"
     },
     "mamalona": {
       "codigo": "10304011",
@@ -115,13 +116,13 @@
       "cuenca": "San Pedro",
       "lat": -39.58,
       "lon": -72.18,
-      "q_m3s": 0.0,
+      "q_m3s": null,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "FUNDO SICHAHUE (Meteo)",
       "es_proxy": true,
-      "estado": "ok"
+      "estado": "sin_telemetria"
     },
     "rinihue": {
       "codigo": "10111015",
@@ -129,13 +130,13 @@
       "cuenca": "San Pedro",
       "lat": -39.79,
       "lon": -72.43,
-      "q_m3s": 0.0,
+      "q_m3s": null,
       "pp_mm": null,
       "nivel_m": null,
       "fecha_dato": null,
       "variable": "LAGO RIÑIHUE ESTACION DE CONTROL",
       "es_proxy": true,
-      "estado": "ok"
+      "estado": "sin_telemetria"
     },
     "antihue": {
       "codigo": "10122002",

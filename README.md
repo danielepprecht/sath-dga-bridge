@@ -4,13 +4,60 @@ Puente automático entre la red hidrométrica DGA (SNIA/MOP) y el dashboard
 SATH. GitHub Actions extrae datos cada hora y los publica en GitHub Pages
 como JSON público que el SATH lee directamente.
 
+## ⚠️ Limitación conocida (2026-07-20)
+
+**El bridge actual (`fetch_dga.py` v9) NO tiene caudal/nivel de río real
+para ninguna de las 12 estaciones.** Diagnóstico completo:
+
+1. El script consulta VipNet (`vipnet.mop.gob.cl`, el "VHN — Visualizador
+   Hidrométrico Nacional"). VipNet es una red **meteorológica**
+   (Precipitación, Temperatura, Embalse, Nieve, Humedad, Viento) — no
+   expone Caudal ni Nivel de río como variable, para ninguna estación.
+   Se verificó en vivo consultando el endpoint con `tipoEstacion` 0–6 y
+   ventanas de hasta 24h: los 12 códigos DGA de este bridge nunca aparecen
+   con un valor real; el campo `"value"` que sí trae cada registro es un
+   placeholder que vale 0 para todas las estaciones fluviométricas.
+2. Antes de v9, `extract_value()` caía de vuelta a ese campo `"value"`
+   cuando no encontraba parámetros anidados, así que el bridge llevaba
+   semanas publicando `q_m3s: 0.0` disfrazado de dato real para 9/12
+   estaciones. v9 elimina ese fallback: ahora una estación solo se marca
+   `"ok"` si hay un dato real, y el resto queda honestamente
+   `"sin_telemetria"`.
+3. La fuente real de caudal/nivel es **DGASAT/Hidrolínea**
+   (`snia.mop.gob.cl/dgasat`), el diseño original de este bridge (ver
+   diagrama abajo) — de hecho ya existen los secrets `DGA_USER`/`DGA_PASS`
+   configurados, pero el script desde la migración a VipNet
+   ("Migrate to VipNet API and remove DGA login") no los usa.
+   Se verificó con una sesión autenticada manual que DGASAT **sí** tiene
+   datos reales y recientes para varias de estas estaciones (ej. código
+   `10134001`, Río Cruces en Rucaco: 2.27 m / 179 m³/s en la consulta de
+   prueba).
+4. **El bloqueo para automatizar DGASAT por hora vía GitHub Actions:** el
+   login exige un token de Google reCAPTCHA generado interactivamente en
+   el navegador. Un script sin navegador (`requests`) no puede resolverlo,
+   y no corresponde construir algo que intente sortear una verificación
+   anti-bot de forma automatizada.
+
+**Próximos pasos recomendados** (requieren decisión/gestión humana, no
+son ejecutables por un agente):
+- Contactar al DIRH (+56 2 2449 40 00 opción 4) y solicitar explícitamente
+  una **credencial de API institucional** para DGASAT/Hidrolínea que no
+  dependa de reCAPTCHA (many organismos públicos chilenos ofrecen esto a
+  usuarios institucionales tipo ONEMI).
+- Alternativa manual: una persona inicia sesión en DGASAT periódicamente
+  y copia los valores relevantes a mano (no escala para actualización
+  horaria, pero es honesto).
+- Mientras tanto, el bridge sigue corriendo cada hora y seguirá
+  publicando `"sin_telemetria"` para las 12 estaciones — es preferible a
+  publicar ceros falsos en un sistema de alerta temprana.
+
 ## Arquitectura
 
 ```
-DGA DGASAT (snia.mop.gob.cl)
+DGA DGASAT (snia.mop.gob.cl)  ← bloqueado por reCAPTCHA, ver limitación arriba
         ↓  cada 1h (GitHub Actions)
-  fetch_dga.py   ←  DGA_USER / DGA_PASS (GitHub Secrets)
-        ↓
+  fetch_dga.py   ←  DGA_USER / DGA_PASS (GitHub Secrets, no usados actualmente)
+        ↓  (fuente real hoy: VipNet, solo metadata/meteo — sin caudal)
   docs/dga_losrios.json
         ↓  GitHub Pages (HTTPS público)
   SATH v5 Dashboard
@@ -59,13 +106,20 @@ En el repositorio → **Settings → Secrets and variables → Actions → New s
 > Si aún no tienes cuenta DGA, créala en:
 > https://snia.mop.gob.cl/dgasat/pages/dgasat_login/dgasat_login.htm
 > O solicita acceso al DIRH: +56 2 2449 40 00 opción 4
+>
+> **Nota:** estos secrets están configurados pero el script actual (v9)
+> no los usa — ver "Limitación conocida" arriba. El login de DGASAT está
+> protegido con reCAPTCHA y no es automatizable sin una credencial de API
+> institucional.
 
 ### 4. Verificar primera ejecución
 
 En → **Actions → SATH — DGA Data Bridge → Run workflow**
 
 El workflow tarda ~2 minutos. Luego verifica:
-- `docs/dga_losrios.json` actualizado con datos reales
+- `docs/dga_losrios.json` actualizado (hoy: metadata correcta, `estado`
+  honesto por estación — no esperar `q_m3s` real hasta resolver la
+  limitación de DGASAT)
 - Status page: `https://TU_USUARIO.github.io/sath-dga-bridge/`
 
 ### 5. Conectar SATH al bridge
@@ -83,8 +137,8 @@ const DGA_BRIDGE_URL =
 {
   "meta": {
     "timestamp_utc": "2026-07-06T12:00:00Z",
-    "login_ok": true,
-    "n_estaciones_ok": 10
+    "n_estaciones_ok": 0,
+    "limitacion_conocida": "VipNet no expone caudal/nivel — ver README"
   },
   "estaciones": {
     "antihue": {
@@ -93,11 +147,11 @@ const DGA_BRIDGE_URL =
       "cuenca": "Calle-Calle",
       "lat": -39.85,
       "lon": -73.10,
-      "q_m3s": 342.5,
-      "nivel_m": 1.234,
-      "pp_mm": 12.4,
-      "fecha_dato": "2026-07-06 11:00",
-      "estado": "ok"
+      "q_m3s": null,
+      "nivel_m": null,
+      "pp_mm": null,
+      "fecha_dato": null,
+      "estado": "sin_telemetria"
     }
   }
 }
@@ -123,13 +177,16 @@ const DGA_BRIDGE_URL =
 ## Troubleshooting
 
 **El workflow falla con error de login:**
-- Verifica que `DGA_USER` y `DGA_PASS` estén bien escritos en los Secrets
-- Prueba las credenciales manualmente en https://snia.mop.gob.cl/dgasat/
+- El script v9 no hace login a DGASAT (ver "Limitación conocida"), así
+  que este error ya no debería ocurrir salvo que se reintroduzca ese
+  flujo. Si aparece, revisar si alguien modificó `fetch_dga.py` para
+  volver a intentar login.
 
-**Los datos muestran `q_m3s: null`:**
-- El scraper navegó bien pero no encontró datos numéricos en la página
-- La DGA puede haber cambiado el HTML de la interfaz
-- Abrir un issue en el repo con el HTML que está retornando la página
+**Los datos muestran `q_m3s: null` / `estado: sin_telemetria`:**
+- Es el comportamiento esperado hoy para las 12 estaciones — no es un
+  error transitorio, es la limitación documentada arriba. No reintentar
+  "arreglarlo" agregando de vuelta un fallback a datos de VipNet: ese
+  campo no es caudal real (confirmado).
 
 **GitHub Pages no muestra el JSON:**
 - Esperar 2-5 min después del primer push para que Pages se active

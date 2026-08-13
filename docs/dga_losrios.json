@@ -1,7 +1,7 @@
 {
   "meta": {
-    "timestamp_utc": "2026-08-13T19:57:39.876769+00:00",
-    "timestamp_chile": "2026-08-13T15:57:39.876769-04:00",
+    "timestamp_utc": "2026-08-13T20:44:28.646757+00:00",
+    "timestamp_chile": "2026-08-13T16:44:28.646757-04:00",
     "fuente": "DGASAT (Red Hidrométrica DGA) + VipNet (DGA/MOP)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "limitacion_conocida": "VipNet (VHN) es una red meteorológica: no expone caudal ni nivel de río. La fuente autoritativa de caudal real es DGASAT/Hidrolínea (snia.mop.gob.cl/dgasat), cuyo login está protegido con reCAPTCHA — este script nunca resuelve login ni reCAPTCHA por su cuenta. En su lugar, reutiliza una cookie de sesión ya autenticada por un humano (secret DGASAT_SESSION_COOKIE), que debe refrescarse manualmente cada cierto tiempo. Ver README → 'Cómo refrescar la cookie de DGASAT'.",
@@ -11,7 +11,7 @@
     "n_estaciones_ok": 0,
     "n_estaciones": 13,
     "n_raw_registros": 1033,
-    "prox_actualizacion": "2026-08-13T20:57:39.876769+00:00"
+    "prox_actualizacion": "2026-08-13T21:44:28.646757+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
@@ -104,21 +104,6 @@
       "fuente": "vipnet",
       "estado": "sin_telemetria"
     },
-    "mamalona": {
-      "codigo": "10304011",
-      "nombre": "Fundo Sichahue - San Pedro [proxy]",
-      "cuenca": "San Pedro",
-      "lat": -39.58,
-      "lon": -72.18,
-      "q_m3s": null,
-      "pp_mm": null,
-      "nivel_m": null,
-      "fecha_dato": null,
-      "variable": "FUNDO SICHAHUE (Meteo)",
-      "es_proxy": true,
-      "fuente": "vipnet",
-      "estado": "sin_telemetria"
-    },
     "corral": {
       "codigo": "10200001",
       "nombre": "Meteorologica Corral",
@@ -131,6 +116,21 @@
       "fecha_dato": null,
       "variable": "METEOROLOGICA CORRAL",
       "es_proxy": false,
+      "fuente": "vipnet",
+      "estado": "sin_telemetria"
+    },
+    "mamalona": {
+      "codigo": "10304011",
+      "nombre": "Fundo Sichahue - San Pedro [proxy]",
+      "cuenca": "San Pedro",
+      "lat": -39.58,
+      "lon": -72.18,
+      "q_m3s": null,
+      "pp_mm": null,
+      "nivel_m": null,
+      "fecha_dato": null,
+      "variable": "FUNDO SICHAHUE (Meteo)",
+      "es_proxy": true,
       "fuente": "vipnet",
       "estado": "sin_telemetria"
     },

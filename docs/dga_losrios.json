@@ -1,7 +1,7 @@
 {
   "meta": {
-    "timestamp_utc": "2026-11-06T00:52:11.413169+00:00",
-    "timestamp_chile": "2026-11-05T20:52:11.413169-04:00",
+    "timestamp_utc": "2026-11-06T07:44:32.187806+00:00",
+    "timestamp_chile": "2026-11-06T03:44:32.187806-04:00",
     "fuente": "DGASAT (Red Hidrométrica DGA) + VipNet (DGA/MOP)",
     "aviso": "Datos provisorios sujetos a revisión — DGA/MOP. Estaciones [proxy]: cobertura geográfica aproximada.",
     "limitacion_conocida": "VipNet (VHN) es una red meteorológica: no expone caudal ni nivel de río. La fuente autoritativa de caudal real es DGASAT/Hidrolínea (snia.mop.gob.cl/dgasat), cuyo login está protegido con reCAPTCHA — este script nunca resuelve login ni reCAPTCHA por su cuenta. En su lugar, reutiliza una cookie de sesión ya autenticada por un humano (secret DGASAT_SESSION_COOKIE), que debe refrescarse manualmente cada cierto tiempo. Ver README → 'Cómo refrescar la cookie de DGASAT'.",
@@ -10,8 +10,8 @@
     "fetch_ok": true,
     "n_estaciones_ok": 0,
     "n_estaciones": 13,
-    "n_raw_registros": 1062,
-    "prox_actualizacion": "2026-11-06T01:52:11.413169+00:00"
+    "n_raw_registros": 1065,
+    "prox_actualizacion": "2026-11-06T08:44:32.187806+00:00"
   },
   "estaciones": {
     "pilmaiquen": {
